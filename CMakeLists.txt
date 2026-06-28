@@ -188,6 +188,17 @@ set(PIANOROLL_SOURCES
     src/pianoroll/expression_lane.cc
 )
 
+# ── Mixer sources ──────────────────────────────────────────────────
+set(MIXER_SOURCES
+    src/mixer/channel.cc
+    src/mixer/mixer.cc
+    src/mixer/routing.cc
+    src/mixer/sidechain.cc
+    src/mixer/builtin_eq.cc
+    src/mixer/master_channel.cc
+    src/mixer/mixer_ui.cc
+)
+
 # ── Timeline / Model / Project sources ─────────────────────────
 set(MODEL_SOURCES
     src/model/marker.cc
@@ -218,6 +229,7 @@ add_library(aria_core STATIC
     ${MODEL_SOURCES}
     ${TIMELINE_SOURCES}
     ${PROJECT_SOURCES}
+    ${MIXER_SOURCES}
 )
 
 target_include_directories(aria_core PUBLIC

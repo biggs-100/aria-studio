@@ -179,6 +179,97 @@ target_include_directories(aria_marker_tests PRIVATE
 include(Catch)
 catch_discover_tests(aria_marker_tests)
 
+# ── Mixer tests (Slice 1: Channel strip) ────────────────────────
+add_executable(aria_mixer_channel_tests
+    unit/test_channel.cc
+)
+
+target_link_libraries(aria_mixer_channel_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_mixer_channel_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_mixer_channel_tests)
+
+# ── Mixer tests (Slice 1: Mixer engine + summing) ──────────────
+add_executable(aria_mixer_engine_tests
+    unit/test_mixer.cc
+    test_common/audio_harness.cc
+)
+
+target_link_libraries(aria_mixer_engine_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_mixer_engine_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_mixer_engine_tests)
+
+# ── Mixer tests (Slice 2: BuiltIn EQ) ──────────────────────────────
+add_executable(aria_mixer_eq_tests
+    unit/test_builtin_eq.cc
+)
+
+target_link_libraries(aria_mixer_eq_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_mixer_eq_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_mixer_eq_tests)
+
+# ── Mixer tests (Slice 2: Master channel) ─────────────────────────
+add_executable(aria_mixer_master_tests
+    unit/test_master_channel.cc
+)
+
+target_link_libraries(aria_mixer_master_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_mixer_master_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_mixer_master_tests)
+
+# ── Mixer tests (Slice 1: Routing, sends, sidechain) ───────────
+add_executable(aria_mixer_routing_tests
+    unit/test_routing.cc
+)
+
+target_link_libraries(aria_mixer_routing_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_mixer_routing_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_mixer_routing_tests)
+
 # ── Project manager tests ──────────────────────────────────
 add_executable(aria_project_tests
     unit/test_project_manager.cc
