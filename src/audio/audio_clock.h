@@ -62,6 +62,12 @@ public:
     /// Reset the clock to zero.
     void reset();
 
+    /// Jump to an exact sample position (audio-thread safe).
+    /// Used by Transport for loop wrapping and seeks.
+    void set_sample_position(uint64_t pos) {
+        sample_position_.store(pos, std::memory_order_release);
+    }
+
 private:
     /// Convert sample position to time in seconds.
     /// This is an approximation that assumes the current sample rate.

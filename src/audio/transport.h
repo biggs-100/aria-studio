@@ -109,13 +109,44 @@ public:
 
     /// Set playback position (sample position).
     void set_position(uint64_t position) {
-        // We set the clock position directly — the audio thread
-        // will start from here on the next process() call.
-        // This is a soft seek: the clock must be reset before the
-        // next audio callback.
         seek_position_.store(position, std::memory_order_release);
         pending_seek_.store(true, std::memory_order_release);
     }
+
+    // ─── Punch in/out (control thread) ─────────────────────────
+
+    /// Enable/disable punch recording range.
+    void set_punch(bool enabled, uint64_t start, uint64_t end);
+
+    /// Whether punch is enabled.
+    bool punch_enabled() const {
+        return punch_enabled_.load(std::memory_order_relaxed);
+    }
+
+    uint64_t punch_start() const { return punch_start_; }
+    uint64_t punch_end() const { return punch_end_; }
+
+    // ─── Metronome (control thread) ─────────────────────────---
+
+    /// Configure the metronome.
+    /// @param enabled    Enable/disable metronome clicks.
+    /// @param volume_db  Click volume in dB.
+    /// @param note_pitch MIDI note number for the click pitch (default 76 = E6).
+    void set_metronome(bool enabled, float volume_db = -6.0f, int note_pitch = 76);
+
+    /// Whether the metronome is active.
+    bool metronome_enabled() const {
+        return metronome_enabled_.load(std::memory_order_relaxed);
+    }
+
+    /// Render metronome clicks into an audio buffer.
+    /// Must be called after process() on the same audio block.
+    /// @param buffer      Output buffer (interleaved float samples).
+    /// @param frames      Number of frames in the buffer.
+    /// @param channels    Number of interleaved channels.
+    /// @param sample_rate Current sample rate for sine generation.
+    void render_metronome(float* buffer, uint32_t frames,
+                          uint32_t channels, uint32_t sample_rate) const;
 
 private:
     std::atomic<TransportState> state_{TransportState::Stopped};
@@ -124,10 +155,23 @@ private:
     uint64_t loop_start_ = 0;
     uint64_t loop_end_   = 0;
 
-    // Pending seek position (set from control thread, consumed
-    // on the next audio callback process()).
+    // ─── Seek state ────────────────────────────────────────────
     std::atomic<uint64_t> seek_position_{0};
     std::atomic<bool>     pending_seek_{false};
+
+    // ─── Punch state ───────────────────────────────────────────
+    std::atomic<bool> punch_enabled_{false};
+    uint64_t punch_start_ = 0;
+    uint64_t punch_end_   = 0;
+
+    // ─── Metronome state ───────────────────────────────────────
+    std::atomic<bool> metronome_enabled_{false};
+    float  metronome_volume_ = 0.0f;   // linear gain (converted from dB)
+    int    metronome_pitch_  = 76;     // MIDI note → frequency
+    mutable uint64_t next_beat_ppqn_ = 0;  // next beat to click (tracked by process)
+
+    /// Convert MIDI note to frequency (A4 = 440 Hz, MIDI 69).
+    static double note_to_frequency(int note);
 };
 
 } // namespace aria

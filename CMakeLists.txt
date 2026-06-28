@@ -168,6 +168,22 @@ if(UNIX AND NOT APPLE)
     endif()
 endif()
 
+# ── Timeline / Model / Project sources ─────────────────────────
+set(MODEL_SOURCES
+    src/model/marker.cc
+    src/model/track.cc
+)
+
+set(TIMELINE_SOURCES
+    src/timeline/timeline.cc
+    src/timeline/tempo_track.cc
+)
+
+set(PROJECT_SOURCES
+    src/project/project_manager.cc
+    src/project/arrangement.cc
+)
+
 add_library(aria_core STATIC
     src/kernel/application.cc
     src/kernel/service_locator.cc
@@ -178,6 +194,9 @@ add_library(aria_core STATIC
     ${AUDIO_SOURCES}
     ${DRIVER_SOURCES}
     ${MIDI_SOURCES}
+    ${MODEL_SOURCES}
+    ${TIMELINE_SOURCES}
+    ${PROJECT_SOURCES}
 )
 
 target_include_directories(aria_core PUBLIC

@@ -143,6 +143,57 @@ target_include_directories(aria_slice4_tests PRIVATE
 include(Catch)
 catch_discover_tests(aria_slice4_tests)
 
-# ── Full test suite (requires model, timeline, etc.) ──────
-# Disabled until all component libraries are built.
-# add_executable(aria_tests ...)
+# ── Timeline tests ─────────────────────────────────────────
+add_executable(aria_timeline_tests
+    unit/test_timeline.cc
+)
+
+target_link_libraries(aria_timeline_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_timeline_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_timeline_tests)
+
+# ── Marker tests ───────────────────────────────────────────
+add_executable(aria_marker_tests
+    unit/test_markers.cc
+)
+
+target_link_libraries(aria_marker_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_marker_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_marker_tests)
+
+# ── Project manager tests ──────────────────────────────────
+add_executable(aria_project_tests
+    unit/test_project_manager.cc
+    unit/test_arrangement.cc
+)
+
+target_link_libraries(aria_project_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_project_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_project_tests)
