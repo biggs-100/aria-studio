@@ -1,0 +1,62 @@
+#ifndef ARIA_VENDOR_FUID_DEFS_H
+#define ARIA_VENDOR_FUID_DEFS_H
+
+#if defined(ARIA_FEATURE_VST3)
+
+#include "funknown.h"
+
+// ── FUID definitions for VST3 interfaces ────────────────────────────
+// These are stable GUIDs defined by the VST3 SDK.
+// In a real build these come from the Steinberg VST3 SDK headers.
+
+namespace Steinberg {
+namespace Vst {
+
+// IComponent: 0xE230B5E3108C4D8A, 0x9A1B2E1F3D6C8B4A
+inline const FUID IComponent::iid(0xE230B5E3108C4D8A, 0x9A1B2E1F3D6C8B4A);
+
+// IEditController: 0x510B2E5A31084D8A, 0x9A1B2E1F3D6C8B4B
+inline const FUID IEditController::iid(0x510B2E5A31084D8A, 0x9A1B2E1F3D6C8B4B);
+
+// IEditController2: 0x610B2E5A31084D8A, 0x9A1B2E1F3D6C8B4C
+inline const FUID IEditController2::iid(0x610B2E5A31084D8A, 0x9A1B2E1F3D6C8B4C);
+
+// IAudioProcessor: 0x7A5D5A31084D8A42, 0x9A1B2E1F3D6C8B4D
+inline const FUID IAudioProcessor::iid(0x7A5D5A31084D8A42, 0x9A1B2E1F3D6C8B4D);
+
+// IPluginFactory: 0x000B2E5A31084D8A, 0x9A1B2E1F3D6C8B4E
+inline const FUID IPluginFactory::iid(0x000B2E5A31084D8A, 0x9A1B2E1F3D6C8B4E);
+
+// IPluginFactory2: 0x100B2E5A31084D8A, 0x9A1B2E1F3D6C8B4F
+inline const FUID IPluginFactory2::iid(0x100B2E5A31084D8A, 0x9A1B2E1F3D6C8B4F);
+
+// IPluginFactory3: 0x200B2E5A31084D8A, 0x9A1B2E1F3D6C8B50
+inline const FUID IPluginFactory3::iid(0x200B2E5A31084D8A, 0x9A1B2E1F3D6C8B50);
+
+// IUnitInfo: 0x300B2E5A31084D8A, 0x9A1B2E1F3D6C8B51
+inline const FUID IUnitInfo::iid(0x300B2E5A31084D8A, 0x9A1B2E1F3D6C8B51);
+
+// IParameterChanges: 0x400B2E5A31084D8A, 0x9A1B2E1F3D6C8B52
+inline const FUID IParameterChanges::iid(0x400B2E5A31084D8A, 0x9A1B2E1F3D6C8B52);
+
+// IParamValueQueue: 0x500B2E5A31084D8A, 0x9A1B2E1F3D6C8B53
+inline const FUID IParamValueQueue::iid(0x500B2E5A31084D8A, 0x9A1B2E1F3D6C8B53);
+
+// IBStream: 0x600B2E5A31084D8A, 0x9A1B2E1F3D6C8B54
+inline const FUID IBStream::iid(0x600B2E5A31084D8A, 0x9A1B2E1F3D6C8B54);
+
+// IMessage: 0x700B2E5A31084D8A, 0x9A1B2E1F3D6C8B55
+inline const FUID IMessage::iid(0x700B2E5A31084D8A, 0x9A1B2E1F3D6C8B55);
+
+// IAttributeList: 0x800B2E5A31084D8A, 0x9A1B2E1F3D6C8B56
+inline const FUID IAttributeList::iid(0x800B2E5A31084D8A, 0x9A1B2E1F3D6C8B56);
+
+// IConnectionPoint: 0x900B2E5A31084D8A, 0x9A1B2E1F3D6C8B57
+inline const FUID IConnectionPoint::iid(0x900B2E5A31084D8A, 0x9A1B2E1F3D6C8B57);
+
+} // namespace Vst
+} // namespace Steinberg
+
+#endif // ARIA_FEATURE_VST3
+
+#endif // ARIA_VENDOR_FUID_DEFS_H

@@ -199,6 +199,24 @@ set(MIXER_SOURCES
     src/mixer/mixer_ui.cc
 )
 
+# ── Plugin sources ───────────────────────────────────────────────────
+set(PLUGIN_SOURCES
+    src/plugin/audio_plugin.cc
+    src/plugin/clap_host.cc
+    src/plugin/clap_scanner.cc
+    src/plugin/format_scanner.cc
+    src/plugin/native_clap_factory.cc
+    src/plugin/plugin_audio_node.cc
+    src/plugin/plugin_blacklist.cc
+    src/plugin/plugin_factory.cc
+    src/plugin/plugin_host.cc
+    src/plugin/plugin_sandbox.cc
+    src/plugin/plugin_scanner.cc
+    src/plugin/plugin_scanner_defaults.cc
+    src/plugin/vst3_host.cc
+    src/plugin/vst3_scanner.cc
+)
+
 # ── Timeline / Model / Project sources ─────────────────────────
 set(MODEL_SOURCES
     src/model/marker.cc
@@ -213,6 +231,26 @@ set(TIMELINE_SOURCES
 set(PROJECT_SOURCES
     src/project/project_manager.cc
     src/project/arrangement.cc
+)
+
+# ── Automation sources ──────────────────────────────────────────
+set(AUTOMATION_SOURCES
+    src/automation/automation_engine.cc
+    src/automation/automation_clip.cc
+    src/automation/step_clip.cc
+    src/automation/lfo_clip.cc
+    src/automation/envelope.cc
+    src/automation/modulation_types.cc
+    src/automation/modulation_source.cc
+    src/automation/step_sequencer_source.cc
+    src/automation/macros.cc
+    src/automation/random_source.cc
+    src/automation/note_property_source.cc
+    src/automation/modulation_matrix.cc
+    src/automation/nested_modulation.cc
+    src/automation/lane.cc
+    src/automation/recorder.cc
+    src/automation/cache.cc
 )
 
 add_library(aria_core STATIC
@@ -230,12 +268,25 @@ add_library(aria_core STATIC
     ${TIMELINE_SOURCES}
     ${PROJECT_SOURCES}
     ${MIXER_SOURCES}
+    ${PLUGIN_SOURCES}
+    ${AUTOMATION_SOURCES}
 )
 
 target_include_directories(aria_core PUBLIC
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/kernel
+    ${CMAKE_SOURCE_DIR}/vendor/vst3sdk
 )
+
+# CLAP include directory (from FindDependencies: vendored or FetchContent)
+if(CLAP_INCLUDE_DIR)
+    target_include_directories(aria_core PRIVATE ${CLAP_INCLUDE_DIR})
+endif()
+
+# VST3 compile definition (enables VST3 code paths)
+if(ARIA_FEATURE_VST3)
+    target_compile_definitions(aria_core PRIVATE ARIA_FEATURE_VST3)
+endif()
 
 if(DEFINED MIDI_INCLUDE_DIRS)
     target_include_directories(aria_core PRIVATE ${MIDI_INCLUDE_DIRS})
@@ -250,6 +301,7 @@ endif()
 target_link_libraries(aria_core PUBLIC
     aria_rust
     aria_ui_bundle
+    nlohmann_json::nlohmann_json
     ${SKIA_LIBRARIES}
     ${WEBGPU_LIBRARIES}
     ${LUA_LIBRARIES}

@@ -99,6 +99,15 @@ if(ARIA_BUILD_TESTS)
     list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 endif()
 
+# nlohmann_json (JSON serialization for blacklist + scanner cache)
+include(FetchContent)
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.3
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
 # fmt (logging)
 include(FetchContent)
 FetchContent_Declare(
@@ -116,6 +125,29 @@ FetchContent_Declare(
     GIT_TAG v1.13.0
 )
 FetchContent_MakeAvailable(spdlog)
+
+# CLAP (header-only C API, optional — vendored headers in vendor/clap/ take precedence)
+# FetchContent provides the canonical CLAP headers from the upstream repository.
+# The vendored headers under vendor/clap/include/ are used by default.
+# Set ARIA_USE_FETCHCONTENT_CLAP=ON to override with upstream headers.
+option(ARIA_USE_FETCHCONTENT_CLAP "Fetch CLAP headers from upstream via FetchContent" OFF)
+if(ARIA_USE_FETCHCONTENT_CLAP)
+    FetchContent_Declare(
+        clap
+        GIT_REPOSITORY https://github.com/free-audio/clap.git
+        GIT_TAG v1.2.2
+    )
+    FetchContent_GetProperties(clap)
+    if(NOT clap_POPULATED)
+        FetchContent_Populate(clap)
+    endif()
+    set(CLAP_INCLUDE_DIR ${clap_SOURCE_DIR}/include)
+    message(STATUS "CLAP: using upstream headers from ${CLAP_INCLUDE_DIR}")
+else()
+    # Prefer vendored headers
+    set(CLAP_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/vendor/clap/include")
+    message(STATUS "CLAP: using vendored headers from ${CLAP_INCLUDE_DIR}")
+endif()
 
 message(STATUS "ARIA DAW Build Configuration:")
 message(STATUS "  C++ Standard:    23")
