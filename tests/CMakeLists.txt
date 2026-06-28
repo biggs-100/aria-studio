@@ -197,3 +197,103 @@ target_include_directories(aria_project_tests PRIVATE
 
 include(Catch)
 catch_discover_tests(aria_project_tests)
+
+# ── Piano Roll tests (Slice 1: Note model, spatial index, renderer) ──
+add_executable(aria_pianoroll_tests
+    unit/test_note.cc
+    unit/test_note_collection.cc
+    unit/test_spatial_grid.cc
+    unit/test_view_transform.cc
+)
+
+target_link_libraries(aria_pianoroll_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_pianoroll_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_pianoroll_tests)
+
+# ── Piano Roll tests (Slice 2: Tools) ──────────────────────────────
+add_executable(aria_pianoroll_slice2_tests
+    unit/test_tools.cc
+    unit/test_selection.cc
+    unit/test_snap.cc
+)
+
+target_link_libraries(aria_pianoroll_slice2_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_pianoroll_slice2_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_pianoroll_slice2_tests)
+
+# ── Piano Roll tests (Slice 4: Scale, chords, quantize, humanize, ghosts, step input) ──
+add_executable(aria_pianoroll_slice4_tests
+    unit/test_scale_system.cc
+    unit/test_chord_generator.cc
+    unit/test_quantize.cc
+    unit/test_humanize.cc
+    unit/test_ghost_notes.cc
+    unit/test_step_input.cc
+)
+
+target_link_libraries(aria_pianoroll_slice4_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_pianoroll_slice4_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_pianoroll_slice4_tests)
+
+# ── Piano Roll tests (Slice 3: Velocity lane) ──────────────────────
+add_executable(aria_pianoroll_velocity_tests
+    unit/test_velocity_lane.cc
+)
+
+target_link_libraries(aria_pianoroll_velocity_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_pianoroll_velocity_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_pianoroll_velocity_tests)
+
+# ── Piano Roll tests (Slice 3: Expression lanes) ──────────────────
+add_executable(aria_pianoroll_expression_tests
+    unit/test_expression_lane.cc
+)
+
+target_link_libraries(aria_pianoroll_expression_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_pianoroll_expression_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_pianoroll_expression_tests)

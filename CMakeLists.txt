@@ -168,6 +168,26 @@ if(UNIX AND NOT APPLE)
     endif()
 endif()
 
+# ── Piano Roll sources ─────────────────────────────────────────
+set(PIANOROLL_SOURCES
+    src/pianoroll/note_collection.cc
+    src/pianoroll/spatial_grid.cc
+    src/pianoroll/piano_roll_canvas.cc
+    src/pianoroll/piano_roll_renderer.cc
+    src/pianoroll/piano_keyboard.cc
+    src/pianoroll/tool_manager.cc
+    src/pianoroll/selection_manager.cc
+    src/pianoroll/snap_system.cc
+    src/pianoroll/scale_system.cc
+    src/pianoroll/chord_generator.cc
+    src/pianoroll/quantize_engine.cc
+    src/pianoroll/humanize_engine.cc
+    src/pianoroll/ghost_notes.cc
+    src/pianoroll/step_input.cc
+    src/pianoroll/velocity_lane.cc
+    src/pianoroll/expression_lane.cc
+)
+
 # ── Timeline / Model / Project sources ─────────────────────────
 set(MODEL_SOURCES
     src/model/marker.cc
@@ -194,6 +214,7 @@ add_library(aria_core STATIC
     ${AUDIO_SOURCES}
     ${DRIVER_SOURCES}
     ${MIDI_SOURCES}
+    ${PIANOROLL_SOURCES}
     ${MODEL_SOURCES}
     ${TIMELINE_SOURCES}
     ${PROJECT_SOURCES}
