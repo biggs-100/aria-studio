@@ -100,6 +100,7 @@ private:
     static void write_le24(uint8_t* buf, uint32_t v);
     static void write_le32(uint8_t* buf, uint32_t v);
     static void write_be16(uint8_t* buf, uint16_t v);
+    static void write_be24(uint8_t* buf, uint32_t v);
     static void write_be32(uint8_t* buf, uint32_t v);
 };
 

@@ -50,7 +50,8 @@ void SpectrumAnalyzer::update_window() {
 
     for (uint32_t i = 0; i < n; ++i) {
         double w = 0.0;
-        double a0, a1, a2, a3, a4;
+        double a0, a1, a2, a3;
+        (void)a3; // Used in some switch cases
 
         switch (window_type_) {
         case WindowType::Rectangular:

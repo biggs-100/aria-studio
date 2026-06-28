@@ -50,6 +50,12 @@ void FileWriter::write_be16(uint8_t* buf, uint16_t v) {
     buf[1] = static_cast<uint8_t>(v & 0xFF);
 }
 
+void FileWriter::write_be24(uint8_t* buf, uint32_t v) {
+    buf[0] = static_cast<uint8_t>((v >> 16) & 0xFF);
+    buf[1] = static_cast<uint8_t>((v >> 8) & 0xFF);
+    buf[2] = static_cast<uint8_t>(v & 0xFF);
+}
+
 void FileWriter::write_be32(uint8_t* buf, uint32_t v) {
     buf[0] = static_cast<uint8_t>((v >> 24) & 0xFF);
     buf[1] = static_cast<uint8_t>((v >> 16) & 0xFF);
@@ -360,7 +366,7 @@ bool FileWriter::write_flac(const std::string& path, const float* data,
 
     char si[42];
     std::memset(si, 0, 42);
-    si[0] = 0x80; // last-metadata-block flag + type 0
+    si[0] = static_cast<char>(0x80); // last-metadata-block flag + type 0
     write_be24(reinterpret_cast<uint8_t*>(si + 1), 34); // data length
 
     write_be16(reinterpret_cast<uint8_t*>(si + 4),
@@ -383,7 +389,6 @@ bool FileWriter::write_flac(const std::string& path, const float* data,
 
     // Write simplified frame data (raw PCM as verbatim subframes)
     const uint32_t total = frames * channels;
-    const uint32_t bps = bit_depth / 8;
 
     for (uint32_t i = 0; i < total; ++i) {
         float s = std::clamp(data[i], -1.0f, 1.0f);

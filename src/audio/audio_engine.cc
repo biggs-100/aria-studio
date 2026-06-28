@@ -144,7 +144,6 @@ void AudioEngine::process_control_messages() {
 
 void AudioEngine::update_meters() {
     float peak = 0.0f;
-    float rms = 0.0f;
 
     if (tracks_.empty()) {
         master_peak_ = 0.0f;

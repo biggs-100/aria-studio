@@ -51,6 +51,46 @@ endif()
 
 # ── Core Library ──────────────────────────────────────────────
 
+# ── Platform libraries (accumulated by MIDI and Audio sections) ──
+set(PLATFORM_LIBS "")
+
+# ── MIDI sources ──────────────────────────────────────────────────
+set(MIDI_SOURCES
+    src/midi/midi_clip.cc
+    src/midi/note_tracker.cc
+    src/midi/midi_node.cc
+    src/midi/midi_node_types.cc
+    src/midi/midi_graph.cc
+    src/midi/midi_clock.cc
+    src/midi/midi_engine.cc
+    src/midi/midi_recorder.cc
+    src/midi/jitter_compensator.cc
+    src/midi/mpe.cc
+    src/midi/driver/virtual_port_driver.cc
+    src/midi/driver/platform_midi.cc
+)
+
+# ── Conditional MIDI drivers (platform-specific) ─────────────────
+if(WIN32)
+    list(APPEND MIDI_SOURCES src/midi/driver/winmm_driver.cc)
+elseif(APPLE)
+    # CoreMIDI on macOS requires Objective-C++ (.mm)
+    set_source_files_properties(
+        src/midi/driver/coremidi_driver.mm PROPERTIES
+        LANGUAGE CXX
+    )
+    list(APPEND MIDI_SOURCES src/midi/driver/coremidi_driver.mm)
+    list(APPEND PLATFORM_LIBS "-framework CoreMIDI" "-framework CoreFoundation")
+elseif(UNIX)
+    list(APPEND MIDI_SOURCES src/midi/driver/alsa_seq_driver.cc)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(ALSA REQUIRED alsa)
+        set(MIDI_INCLUDE_DIRS ${ALSA_INCLUDE_DIRS})
+        set(MIDI_LINK_DIRS ${ALSA_LIBRARY_DIRS})
+        list(APPEND PLATFORM_LIBS ${ALSA_LIBRARIES})
+    endif()
+endif()
+
 # ── Audio sources (shared) ──────────────────────────────────────
 set(AUDIO_SOURCES
     src/audio/audio_clock.cc
@@ -83,8 +123,6 @@ set(AUDIO_SOURCES
 set(DRIVER_SOURCES
     src/audio/driver/platform_driver.cc
 )
-
-set(PLATFORM_LIBS "")
 
 if(WIN32)
     list(APPEND DRIVER_SOURCES
@@ -139,12 +177,18 @@ add_library(aria_core STATIC
     src/kernel/crash_handler.cc
     ${AUDIO_SOURCES}
     ${DRIVER_SOURCES}
+    ${MIDI_SOURCES}
 )
 
 target_include_directories(aria_core PUBLIC
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/kernel
 )
+
+if(DEFINED MIDI_INCLUDE_DIRS)
+    target_include_directories(aria_core PRIVATE ${MIDI_INCLUDE_DIRS})
+    target_link_directories(aria_core PRIVATE ${MIDI_LINK_DIRS})
+endif()
 
 if(UNIX AND NOT APPLE AND DEFINED DRIVER_INCLUDE_DIRS)
     target_include_directories(aria_core PRIVATE ${DRIVER_INCLUDE_DIRS})

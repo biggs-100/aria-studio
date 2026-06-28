@@ -182,7 +182,6 @@ void LUFSMeter::process(const float* samples, uint32_t frames,
     // Process each channel independently
     double ch_energy_momentary[kMaxChannels]{};
     double ch_energy_short[kMaxChannels]{};
-    double ch_energy_integrated[kMaxChannels]{};
 
     for (uint32_t ch = 0; ch < channels; ++ch) {
         for (uint32_t f = 0; f < frames; ++f) {

@@ -77,6 +77,49 @@ target_include_directories(aria_slice3_tests PRIVATE
 include(Catch)
 catch_discover_tests(aria_slice3_tests)
 
+# ── MIDI engine tests (Slice 1: Data model, graph, clock) ──────
+add_executable(aria_midi_tests
+    unit/test_midi_main.cc
+    unit/test_midi_types.cc
+    unit/test_midi_graph.cc
+    unit/test_midi_clock.cc
+    unit/test_note_tracker.cc
+)
+
+target_link_libraries(aria_midi_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_midi_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_midi_tests)
+
+# ── MIDI engine tests (Slice 2: drivers, recorder, MPE) ─────────
+add_executable(aria_midi_slice2_tests
+    unit/test_midi_main.cc
+    unit/test_midi_recorder.cc
+    unit/test_mpe.cc
+    unit/test_midi_driver_mock.cc
+)
+
+target_link_libraries(aria_midi_slice2_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_midi_slice2_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_midi_slice2_tests)
+
 # ── Slice 4: Export, Metering, SRC tests ───────────────────────
 add_executable(aria_slice4_tests
     unit/test_audio_main.cc

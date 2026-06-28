@@ -89,8 +89,8 @@ void SRCConverter::update_sinc_table() {
     const double half_len = static_cast<double>(num_points) / 2.0;
     const double beta = (quality_ == Quality::Best) ? 8.0 : 4.0;
 
-    auto& table = (quality_ == Quality::Best) ? sinc_table_best_[0]
-                                              : sinc_table_high_[0];
+    float* table = (quality_ == Quality::Best) ? sinc_table_best_[0]
+                                               : sinc_table_high_[0];
 
     for (uint32_t phase = 0; phase < kSincTableSize; ++phase) {
         double frac = static_cast<double>(phase) /
@@ -227,8 +227,8 @@ uint32_t SRCConverter::process_sinc(const float* input, uint32_t input_frames,
     const uint32_t num_points = (quality_ == Quality::Best) ? kSincPointsBest
                                                            : kSincPointsHigh;
     const uint32_t half_len = num_points / 2;
-    auto& table = (quality_ == Quality::Best) ? sinc_table_best_[0]
-                                              : sinc_table_high_[0];
+    float* table = (quality_ == Quality::Best) ? sinc_table_best_[0]
+                                               : sinc_table_high_[0];
 
     uint32_t out_count = 0;
     double pos = frac_pos_;
@@ -276,7 +276,9 @@ uint32_t SRCConverter::process_sinc(const float* input, uint32_t input_frames,
             __m128 total = _mm_add_ps(sum1, sum2);
             total = _mm_hadd_ps(total, total);
             total = _mm_hadd_ps(total, total);
-            _mm_store_ss(&sample, total);
+            float sample_f;
+            _mm_store_ss(&sample_f, total);
+            sample = static_cast<double>(sample_f);
         } else
 #endif
         {
