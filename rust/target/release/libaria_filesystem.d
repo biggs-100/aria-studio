@@ -1,0 +1,1 @@
+C:\Users\USER\Desktop\daw\rust\target\release\libaria_filesystem.rlib: C:\Users\USER\Desktop\daw\rust\aria-filesystem\src\lib.rs C:\Users\USER\Desktop\daw\rust\aria-filesystem\src\scanner.rs C:\Users\USER\Desktop\daw\rust\aria-filesystem\src\watcher.rs

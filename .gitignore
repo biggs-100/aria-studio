@@ -1,8 +1,8 @@
 # Build outputs
-build/
-cmake-build-*/
+build*/
 out/
 target/          # Rust
+rust/target/      # Rust build artifacts
 *.o
 *.obj
 *.exe

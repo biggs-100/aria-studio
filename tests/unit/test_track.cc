@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "model/track.h"
 
 using namespace aria;
@@ -7,15 +8,15 @@ TEST_CASE("Track creation and properties", "[model][track]") {
     Track track(TrackType::Audio);
 
     SECTION("Default state") {
-        REQUIRE(track.volume() == Approx(0.0));
-        REQUIRE(track.pan() == Approx(0.0));
+        REQUIRE(track.volume() == Catch::Approx(0.0));
+        REQUIRE(track.pan() == Catch::Approx(0.0));
         REQUIRE_FALSE(track.is_muted());
         REQUIRE_FALSE(track.is_soloed());
     }
 
     SECTION("Set volume") {
         track.set_volume(-6.0);
-        REQUIRE(track.volume() == Approx(-6.0));
+        REQUIRE(track.volume() == Catch::Approx(-6.0));
     }
 
     SECTION("Set name") {

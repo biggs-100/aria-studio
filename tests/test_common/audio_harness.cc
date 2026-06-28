@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include "audio_harness.h"
 
 #include <algorithm>
@@ -33,7 +34,8 @@ std::vector<float> AudioHarness::generate_noise(
 {
     std::vector<float> buffer(frames);
     std::mt19937 gen(42);
-    std::uniform_real_distribution<float> dist(-amplitude, amplitude);
+    std::uniform_real_distribution<float> dist(
+        static_cast<float>(-amplitude), static_cast<float>(amplitude));
     for (auto& sample : buffer) {
         sample = dist(gen);
     }
