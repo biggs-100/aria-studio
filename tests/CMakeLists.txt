@@ -388,3 +388,121 @@ target_include_directories(aria_pianoroll_expression_tests PRIVATE
 
 include(Catch)
 catch_discover_tests(aria_pianoroll_expression_tests)
+
+# ── Plugin sandbox tests (Phase 3) ────────────────────────────────
+add_executable(aria_plugin_sandbox_tests
+    unit/test_plugin_sandbox.cc
+    test_common/test_plugin.cc
+)
+
+target_link_libraries(aria_plugin_sandbox_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_plugin_sandbox_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_plugin_sandbox_tests)
+
+# ── Plugin blacklist tests (Phase 3) ──────────────────────────────
+add_executable(aria_plugin_blacklist_tests
+    unit/test_plugin_blacklist.cc
+)
+
+target_link_libraries(aria_plugin_blacklist_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_plugin_blacklist_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_plugin_blacklist_tests)
+
+# ── Plugin scanner tests (Phase 4) ───────────────────────────────
+add_executable(aria_plugin_scanner_tests
+    unit/test_plugin_scanner.cc
+)
+
+target_link_libraries(aria_plugin_scanner_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_plugin_scanner_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_plugin_scanner_tests)
+
+# ── Plugin tests (Phase 5 + 6: adapter, params, factory, host, native) ─
+add_executable(aria_plugin_tests
+    unit/test_plugin_audio_node.cc
+    unit/test_plugin_params.cc
+    unit/test_plugin_factory.cc
+    unit/test_plugin_host.cc
+    unit/test_native_clap_factory.cc
+    test_common/test_plugin.cc
+)
+
+target_link_libraries(aria_plugin_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_plugin_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_plugin_tests)
+
+# ── Plugin types tests (PR 1 foundation) ──────────────────────────
+add_executable(aria_plugin_types_tests
+    unit/test_plugin_types.cc
+    test_common/test_plugin.cc
+)
+
+target_link_libraries(aria_plugin_types_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_plugin_types_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_plugin_types_tests)
+
+# ── Automation engine tests (Phase 4: Engine + Build + Tests) ──
+add_executable(aria_automation_tests
+    unit/test_automation_points.cc
+    unit/test_automation_clips.cc
+    unit/test_modulation.cc
+    unit/test_recorder.cc
+)
+
+target_link_libraries(aria_automation_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_automation_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_automation_tests)
