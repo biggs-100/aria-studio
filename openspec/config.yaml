@@ -1,0 +1,48 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Project: ARIA DAW — modular next-generation DAW
+  Stack: C++20/23, Rust, TypeScript, Lua, Python
+  Status: Greenfield. No build system or dependencies configured yet.
+  Architecture: Undefined (project not yet scaffolded)
+  Testing: Not configured (no test runner detected)
+  Conventions: TBD
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing code patterns
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
+
+testing:
+  strict_tdd: false
+  reason: "No test runner or testing configuration detected. TDD enforcement requires a test framework to be installed and configured before activation."
+  detected: 2026-06-27
+  runners: []
+  layers:
+    unit: { available: false, tool: "--" }
+    integration: { available: false, tool: "--" }
+    e2e: { available: false, tool: "--" }
+  coverage: { available: false, command: "--" }
+  quality:
+    linter: { available: false, command: "--" }
+    type_checker: { available: false, command: "--" }
+    formatter: { available: false, command: "--" }

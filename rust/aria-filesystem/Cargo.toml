@@ -1,0 +1,11 @@
+[package]
+name = "aria-filesystem"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "aria_filesystem"
+crate-type = ["lib"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }

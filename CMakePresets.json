@@ -1,0 +1,71 @@
+{
+  "version": 8,
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Debug build with sanitizers",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ARIA_ENABLE_ASAN": "ON",
+        "ARIA_ENABLE_LTO": "OFF",
+        "ARIA_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Optimized release build",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ARIA_ENABLE_LTO": "ON",
+        "ARIA_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "dist",
+      "displayName": "Distribution",
+      "description": "Final distribution build",
+      "binaryDir": "${sourceDir}/build/dist",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ARIA_ENABLE_LTO": "ON",
+        "ARIA_BUILD_TESTS": "OFF",
+        "ARIA_BUILD_TOOLS": "OFF"
+      }
+    },
+    {
+      "name": "sanitized",
+      "displayName": "Sanitized",
+      "description": "Debug build with all sanitizers",
+      "binaryDir": "${sourceDir}/build/sanitized",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ARIA_ENABLE_ASAN": "ON",
+        "ARIA_ENABLE_UBSAN": "ON",
+        "ARIA_ENABLE_LTO": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug", "configurePreset": "debug" },
+    { "name": "release", "configurePreset": "release" },
+    { "name": "dist", "configurePreset": "dist" },
+    { "name": "sanitized", "configurePreset": "sanitized" }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error"}
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": {"outputOnFailure": true}
+    }
+  ]
+}

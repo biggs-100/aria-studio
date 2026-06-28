@@ -1,0 +1,20 @@
+[workspace]
+members = [
+    "aria-database",
+    "aria-filesystem",
+    "aria-networking",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

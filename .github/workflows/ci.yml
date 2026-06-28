@@ -1,0 +1,93 @@
+name: ARIA CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        run: npm install -g pnpm
+
+      - name: TypeScript type check
+        run: |
+          cd ui
+          pnpm install
+          pnpm typecheck
+
+      - name: Rust clippy
+        run: cargo clippy --all-targets -- -D warnings
+        working-directory: rust
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        config: [debug, release]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: python scripts/setup_dev.py
+
+      - name: Build TypeScript UI
+        run: |
+          cd ui
+          pnpm install
+          pnpm build
+
+      - name: Build Rust
+        run: cargo build --release
+        working-directory: rust
+
+      - name: Configure CMake (${{ matrix.config }})
+        run: cmake --preset ${{ matrix.config }}
+
+      - name: Build (${{ matrix.config }})
+        run: cmake --build --preset ${{ matrix.config }}
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run C++ tests
+        run: ctest --preset debug --output-on-failure
+
+      - name: Run Rust tests
+        run: cargo test
+        working-directory: rust

@@ -1,0 +1,20 @@
+{
+  "name": "aria-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsc --noEmit --watch",
+    "build": "tsc --noEmit && esbuild src/index.ts --bundle --outfile=dist/aria_ui.js --format=esm --target=es2022",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist/"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "esbuild": "^0.20.0",
+    "vitest": "^1.6.0",
+    "eslint": "^8.57.0"
+  }
+}
