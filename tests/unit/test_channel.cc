@@ -302,6 +302,55 @@ TEST_CASE("Channel FX chain", "[mixer][channel][fx]") {
     }
 }
 
+// ─── FX Dry/Wet Mix ───────────────────────────────────────────
+
+TEST_CASE("Channel FX dry/wet mix", "[mixer][channel][fx][mix]") {
+    Channel ch(1, "Test", ChannelType::Audio);
+
+    SECTION("default mix is 1.0 (full wet) for new slot") {
+        ch.add_fx(1001, 0);
+        REQUIRE(ch.fx_mix(0) == Catch::Approx(1.0));
+    }
+
+    SECTION("set_fx_mix clamps below 0.0") {
+        ch.add_fx(1001, 0);
+        ch.set_fx_mix(0, -0.5);
+        REQUIRE(ch.fx_mix(0) == Catch::Approx(0.0));
+    }
+
+    SECTION("set_fx_mix clamps above 1.0") {
+        ch.add_fx(1001, 0);
+        ch.set_fx_mix(0, 1.5);
+        REQUIRE(ch.fx_mix(0) == Catch::Approx(1.0));
+    }
+
+    SECTION("set_fx_mix accepts valid values") {
+        ch.add_fx(1001, 0);
+        ch.set_fx_mix(0, 0.35);
+        REQUIRE(ch.fx_mix(0) == Catch::Approx(0.35));
+    }
+
+    SECTION("multiple FX slots have independent mix values") {
+        ch.add_fx(1001, 0);
+        ch.add_fx(1002, 1);
+        ch.set_fx_mix(0, 0.3);
+        ch.set_fx_mix(1, 0.7);
+        REQUIRE(ch.fx_mix(0) == Catch::Approx(0.3));
+        REQUIRE(ch.fx_mix(1) == Catch::Approx(0.7));
+    }
+
+    SECTION("set_fx_mix with invalid index does nothing") {
+        ch.add_fx(1001, 0);
+        ch.set_fx_mix(99, 0.5);
+        REQUIRE(ch.fx_mix(0) == Catch::Approx(1.0));
+    }
+
+    SECTION("fx_mix with invalid index returns -1.0") {
+        REQUIRE(ch.fx_mix(0) == Catch::Approx(-1.0));
+        REQUIRE(ch.fx_mix(999) == Catch::Approx(-1.0));
+    }
+}
+
 // ─── Sends ─────────────────────────────────────────────────────
 
 TEST_CASE("Channel sends", "[mixer][channel][sends]") {

@@ -414,6 +414,99 @@ TEST_CASE("Mixer master channel volume", "[mixer][engine][master]") {
     }
 }
 
+// ─── Processing: Send Routing ──────────────────────────────────
+
+TEST_CASE("Mixer send routing accumulation", "[mixer][engine][sends][process]") {
+    Mixer mixer;
+    mixer.init(48000);
+
+    constexpr uint32_t kFrames = 64;
+
+    // Create a single audio channel with a send to master
+    ChannelID ch = mixer.create_channel("Guitar", ChannelType::Audio);
+    auto* ch_ptr = mixer.get_channel(ch);
+    ch_ptr->set_input_index(0);
+    ch_ptr->set_volume(0.0); // unity gain
+
+    ChannelID master_id = mixer.master_channel()->id();
+
+    float in[kFrames], out0[kFrames], out1[kFrames];
+    for (uint32_t i = 0; i < kFrames; ++i) {
+        in[i]   = 1.0f;
+        out0[i] = out1[i] = 0.0f;
+    }
+
+    AudioBuffer input, output;
+    input.frames = output.frames = kFrames;
+    input.channels = 1;
+    input.capacity = output.capacity = kFrames;
+    input.data[0]  = in;
+    output.data[0] = out0;
+    output.data[1] = out1;
+    output.channels = 2;
+
+    AudioBuffer* inputs[] = { &input };
+
+    static constexpr float kCenterPanGain = 0.70710678f;
+
+    SECTION("send audio accumulates into master along with direct signal") {
+        ch_ptr->add_send(master_id, -6.0, true);
+        mixer.process(inputs, 1, &output, kFrames);
+
+        // Direct: 1.0 * kCenterPanGain (unity volume)
+        // Send (pre-fader, -6 dB): 1.0 * 0.5 * kCenterPanGain
+        float expected = kCenterPanGain * (1.0f + 0.5f);
+
+        for (uint32_t i = 0; i < kFrames; ++i) {
+            REQUIRE(out0[i] == Catch::Approx(expected).margin(0.01f));
+        }
+    }
+
+    SECTION("no send produces only direct signal") {
+        mixer.process(inputs, 1, &output, kFrames);
+
+        float expected = kCenterPanGain;
+        for (uint32_t i = 0; i < kFrames; ++i) {
+            REQUIRE(out0[i] == Catch::Approx(expected).margin(0.01f));
+        }
+    }
+
+    SECTION("pre-fader send is unaffected by channel volume change") {
+        ch_ptr->add_send(master_id, -6.0, true);
+        ch_ptr->set_volume(-12.0); // reduce channel volume
+
+        mixer.process(inputs, 1, &output, kFrames);
+
+        // Direct path attenuated: 1.0 * kCenterPanGain * db_to_linear(-12)
+        // Send pre-fader still at full: 1.0 * 0.5 * kCenterPanGain
+        float direct   = kCenterPanGain * static_cast<float>(Channel::db_to_linear(-12.0));
+        float send     = kCenterPanGain * 0.5f;
+        float expected = direct + send;
+
+        REQUIRE(out0[0] == Catch::Approx(expected).margin(0.01f));
+    }
+
+    SECTION("post-fader send tracks channel volume") {
+        ch_ptr->add_send(master_id, -6.0, false); // post-fader
+        ch_ptr->set_volume(0.0); // unity
+
+        mixer.process(inputs, 1, &output, kFrames);
+        float expected_unity = kCenterPanGain * (1.0f + 0.5f);
+        REQUIRE(out0[0] == Catch::Approx(expected_unity).margin(0.01f));
+
+        // Now reduce channel volume — post-fader send should also reduce
+        ch_ptr->set_volume(-12.0);
+        mixer.process(inputs, 1, &output, kFrames);
+
+        float vol_gain = static_cast<float>(Channel::db_to_linear(-12.0));
+        float direct   = kCenterPanGain * vol_gain;
+        float send     = kCenterPanGain * vol_gain * 0.5f; // post-fader: volume affects send
+        float expected = direct + send;
+
+        REQUIRE(out0[0] == Catch::Approx(expected).margin(0.01f));
+    }
+}
+
 // ─── Processing: Edge Cases ────────────────────────────────────
 
 TEST_CASE("Mixer process edge cases", "[mixer][engine][process]") {

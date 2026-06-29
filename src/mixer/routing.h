@@ -18,7 +18,7 @@ struct RouteTarget {
         None        // No output (silent)
     };
 
-    Type type = Master;
+    Type type;
     union {
         BusID    bus_id;
         TrackID  track_id;
@@ -27,7 +27,9 @@ struct RouteTarget {
 
     // Enum for mono/stereo routing
     enum class Format : uint8_t { Stereo, Mono, DualMono };
-    Format format = Format::Stereo;
+    Format format;
+
+    RouteTarget() : type(Master), bus_id(0), format(Format::Stereo) {}
 };
 
 // ── Audio Input ─────────────────────────────────────────────────

@@ -52,6 +52,7 @@ void Channel::add_fx(PluginID plugin, uint32_t position) {
     FXSlot slot;
     slot.plugin   = plugin;
     slot.bypassed = false;
+    slot.mix      = 1.0;
 
     if (position >= fx_plugins_.size()) {
         fx_plugins_.push_back(std::move(slot));
@@ -72,6 +73,19 @@ void Channel::set_fx_bypass(uint32_t index, bool bypass) {
     if (index < fx_plugins_.size()) {
         fx_plugins_[index].bypassed = bypass;
     }
+}
+
+void Channel::set_fx_mix(uint32_t index, double wet) {
+    if (index < fx_plugins_.size()) {
+        fx_plugins_[index].mix = std::clamp(wet, 0.0, 1.0);
+    }
+}
+
+double Channel::fx_mix(uint32_t index) const {
+    if (index < fx_plugins_.size()) {
+        return fx_plugins_[index].mix;
+    }
+    return -1.0; // sentinel for invalid index
 }
 
 // ── Sends ───────────────────────────────────────────────────────

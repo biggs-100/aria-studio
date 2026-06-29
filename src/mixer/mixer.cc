@@ -28,6 +28,9 @@ bool Mixer::init(uint32_t sample_rate) {
     // Create master channel
     master_id_ = create_channel("Master", ChannelType::Master);
 
+    // Prepare sidechain buffers (stereo, 1024 frames as default max block)
+    sidechain_manager_.prepare(2, 1024);
+
     return true;
 }
 
@@ -38,6 +41,7 @@ void Mixer::shutdown() {
     processing_order_.clear();
     master_id_ = kInvalidChannelID;
     order_dirty_ = true;
+    sidechain_manager_.clear();
 }
 
 // ── Channel Management ──────────────────────────────────────────
@@ -161,6 +165,19 @@ std::string Mixer::bus_name(BusID id) const {
     return (it != buses_.end()) ? it->second.name : "";
 }
 
+void Mixer::set_bus_parent(BusID bus, BusID parent) {
+    auto it = buses_.find(bus);
+    if (it != buses_.end()) {
+        it->second.parent_bus = parent;
+        order_dirty_ = true;
+    }
+}
+
+BusID Mixer::bus_parent(BusID bus) const {
+    auto it = buses_.find(bus);
+    return (it != buses_.end()) ? it->second.parent_bus : kInvalidBusID;
+}
+
 std::vector<BusID> Mixer::all_buses() const {
     std::vector<BusID> ids;
     ids.reserve(buses_.size());
@@ -202,7 +219,23 @@ void Mixer::rebuild_processing_order() {
         }
     }
 
-    // Processing order: Audio → MIDI → Sends → Returns → Groups → Master
+    // Sort groups so nested (child) groups process before parent groups.
+    // A group whose bus has a parent_bus is a nested group and must
+    // process before groups whose bus has no parent (top-level groups).
+    std::stable_sort(group_channels.begin(), group_channels.end(),
+        [this](ChannelID a, ChannelID b) {
+            BusID ba = channel_bus(a);
+            BusID bb = channel_bus(b);
+            bool has_parent_a = (ba != kInvalidBusID) &&
+                                (bus_parent(ba) != kInvalidBusID);
+            bool has_parent_b = (bb != kInvalidBusID) &&
+                                (bus_parent(bb) != kInvalidBusID);
+            // Groups with parents (deeper nesting) come first
+            if (has_parent_a != has_parent_b) return has_parent_a;
+            return a < b; // stable within same level
+        });
+
+    // Processing order: Audio → MIDI → Sends → Returns → Groups (leaf-first) → Master
     for (auto id : audio_channels)   processing_order_.push_back(id);
     for (auto id : midi_channels)    processing_order_.push_back(id);
     for (auto id : return_channels)  processing_order_.push_back(id);
@@ -282,15 +315,61 @@ void Mixer::process(AudioBuffer** inputs, uint32_t num_inputs,
         // MIDI and VCA channels produce no audio
         if (ch->type() == ChannelType::MIDI || ch->type() == ChannelType::VCA) continue;
 
+        // Master is handled after the loop
+        if (ch->type() == ChannelType::Master) continue;
+
+        // ── Group channel processing ──────────────────────────
+        // Group channels read from their assigned bus buffer (children's audio)
+        // and output to the parent bus or master.
+        if (ch->type() == ChannelType::Group) {
+            BusID group_bus = channel_bus(ch_id);
+            if (group_bus == kInvalidBusID) continue;
+
+            // Find bus mix buffer for input
+            auto bit = std::find_if(bus_mixes.begin(), bus_mixes.end(),
+                [group_bus](const BusMix& bm) { return bm.bus_id == group_bus; });
+            if (bit == bus_mixes.end()) continue;
+            const double* bus_buffer = bit->buffer.data();
+
+            // Determine destination: parent bus or master
+            BusID parent = bus_parent(group_bus);
+            double* dest = nullptr;
+            if (parent != kInvalidBusID) {
+                auto pit = std::find_if(bus_mixes.begin(), bus_mixes.end(),
+                    [parent](const BusMix& bm) { return bm.bus_id == parent; });
+                if (pit != bus_mixes.end()) dest = pit->buffer.data();
+            }
+            if (!dest) dest = master_mix.data();
+
+            // Apply group channel's gain/pan to the bus mix
+            double linear_gain = ch->linear_volume();
+            double pan = ch->pan();
+            bool invert = ch->phase_inverted();
+
+            for (uint32_t i = 0; i < frames; ++i) {
+                float s_l = static_cast<float>(bus_buffer[i * 2 + 0]);
+                float s_r = static_cast<float>(bus_buffer[i * 2 + 1]);
+
+                float panned_l, panned_r;
+                apply_equal_power_pan(s_l, s_r, pan, &panned_l, &panned_r);
+
+                if (invert) {
+                    panned_l = -panned_l;
+                    panned_r = -panned_r;
+                }
+
+                dest[i * 2 + 0] += static_cast<double>(panned_l) * linear_gain;
+                dest[i * 2 + 1] += static_cast<double>(panned_r) * linear_gain;
+            }
+            continue; // Skip regular audio processing
+        }
+
+        // ── Regular audio channel processing ──────────────────
         // Get input audio data
-        // For Master and some channels, inputs may come from outside
         bool has_input = false;
         const float* in_l = nullptr;
         const float* in_r = nullptr;
-        if (ch->type() == ChannelType::Master) {
-            // Master channel input comes from the accumulated mix buffers
-            continue; // handled after the loop
-        } else if (ch->input_index() < num_inputs && inputs[ch->input_index()] != nullptr) {
+        if (ch->input_index() < num_inputs && inputs[ch->input_index()] != nullptr) {
             const auto* buf = inputs[ch->input_index()];
             if (buf->channels >= 1) in_l  = buf->channel(0);
             if (buf->channels >= 2) in_r  = buf->channel(0); // mono input, will be copied
@@ -345,6 +424,22 @@ void Mixer::process(AudioBuffer** inputs, uint32_t num_inputs,
                 panned_r = -panned_r;
             }
 
+            // Tap sends for this channel (pre or post fader)
+            for (const auto& send : ch->sends()) {
+                double send_gain = db_to_linear(send.level_db);
+                double send_l = static_cast<double>(panned_l);
+                double send_r = static_cast<double>(panned_r);
+                if (!send.pre_fader) {
+                    // Post-fader: apply channel volume to send signal
+                    send_l *= linear_gain;
+                    send_r *= linear_gain;
+                }
+                // Accumulate send audio into master mix
+                // (Complex routing to bus/destination can be refined later)
+                master_mix[i * 2 + 0] += send_l * send_gain;
+                master_mix[i * 2 + 1] += send_r * send_gain;
+            }
+
             // Apply gain and accumulate into mix buffer (64-bit)
             mix_buffer[i * 2 + 0] += static_cast<double>(panned_l) * linear_gain;
             mix_buffer[i * 2 + 1] += static_cast<double>(panned_r) * linear_gain;
@@ -352,12 +447,38 @@ void Mixer::process(AudioBuffer** inputs, uint32_t num_inputs,
     }
 
     // ── Sum buses into master ──
+    // Buses that have a Group channel as a member are group buses
+    // whose contents are already routed through the Group channel
+    // processing. Skip them here to avoid double-counting.
+    // Only sum buses without a Group member (direct-to-bus channels).
     for (const auto& bm : bus_mixes) {
+        // Check if this bus has a Group member (handled by group channel)
+        auto bit = buses_.find(bm.bus_id);
+        bool has_group_member = false;
+        if (bit != buses_.end()) {
+            for (auto member_id : bit->second.members) {
+                auto ch_it = channels_.find(member_id);
+                if (ch_it != channels_.end() && ch_it->second->type() == ChannelType::Group) {
+                    has_group_member = true;
+                    break;
+                }
+            }
+        }
+        if (has_group_member) continue;
         for (uint32_t i = 0; i < frames; ++i) {
             master_mix[i * 2 + 0] += bm.buffer[i * 2 + 0];
             master_mix[i * 2 + 1] += bm.buffer[i * 2 + 1];
         }
     }
+
+    // ── Process sidechain routing ──
+    // Copy source channel audio into each target's sidechain buffer.
+    // This must happen after channels accumulate so input buffers
+    // are still valid, but before master output.
+    sidechain_manager_.process(inputs, num_inputs, frames,
+        [this](ChannelID id) -> Channel* {
+            return this->get_channel(id);
+        });
 
     // ── Master output ──
     auto* master_ch = master_channel();

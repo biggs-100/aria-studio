@@ -2,6 +2,7 @@
 #define ARIA_MIXER_SIDECHAIN_H
 
 #include <cstdint>
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -33,16 +34,25 @@ public:
     const AudioBuffer* get_sidechain_buffer(ChannelID target) const;
 
     /// Process sidechain routing for the current buffer.
-    /// Must be called from the audio thread each process cycle.
-    void process(uint32_t frames);
+    /// Copies source channel audio into each target's sidechain buffer.
+    /// @param inputs      Array of input audio buffers
+    /// @param num_inputs  Number of inputs
+    /// @param frames      Number of sample frames
+    /// @param get_channel Callback to resolve ChannelID → Channel*
+    void process(AudioBuffer** inputs, uint32_t num_inputs, uint32_t frames,
+                 const std::function<Channel*(ChannelID)>& get_channel);
 
     /// Prepare internal buffers for a given channel configuration.
     void prepare(uint32_t max_channels, uint32_t max_frames);
+
+    /// Clear all sidechain connections.
+    void clear();
 
 private:
     struct SidechainConnection {
         ChannelID source;
         AudioBuffer buffer;
+        std::vector<float> storage; // owned memory for buffer data
     };
 
     std::unordered_map<ChannelID, SidechainConnection> connections_;

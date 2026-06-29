@@ -10,6 +10,7 @@
 #include <cmath>
 
 #include "mixer/builtin_eq.h"
+#include "model/types.h"
 
 namespace aria {
 
@@ -17,13 +18,11 @@ namespace aria {
 using ChannelID = uint32_t;
 using BusID     = uint32_t;
 using SendID    = uint32_t;
-using TrackID   = uint64_t;   // matches model/track.h
 using PluginID  = uint64_t;
 
 static constexpr ChannelID kInvalidChannelID = UINT32_MAX;
 static constexpr BusID     kInvalidBusID     = UINT32_MAX;
 static constexpr SendID    kInvalidSendID    = UINT32_MAX;
-static constexpr TrackID   kInvalidTrackID   = UINT64_MAX;
 
 // ── Channel Type ────────────────────────────────────────────────
 enum class ChannelType {
@@ -79,10 +78,16 @@ public:
     void     set_vca(TrackID vca)   { vca_track_ = vca; }
     TrackID  vca() const            { return vca_track_; }
 
+    /// Set VCA contribution in dB (additive in effective_volume).
+    void     set_vca_contribution(double db) { vca_contribution_db_.store(db); }
+    double   vca_contribution() const        { return vca_contribution_db_.load(); }
+
     // FX
     void     add_fx(PluginID plugin, uint32_t position);
     void     remove_fx(uint32_t index);
     void     set_fx_bypass(uint32_t index, bool bypass);
+    void     set_fx_mix(uint32_t index, double wet);
+    double   fx_mix(uint32_t index) const;
     uint32_t fx_count() const       { return static_cast<uint32_t>(fx_plugins_.size()); }
 
     // Sends
@@ -150,6 +155,7 @@ protected:
     struct FXSlot {
         PluginID plugin;
         bool     bypassed = false;
+        double   mix      = 1.0; // dry/wet (0.0 = dry, 1.0 = wet)
     };
     std::vector<FXSlot> fx_plugins_;
 

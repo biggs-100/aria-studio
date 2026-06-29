@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "mixer/channel.h"
+#include "mixer/sidechain.h"
 #include "audio/audio_buffer.h"
 
 namespace aria {
@@ -58,6 +59,8 @@ public:
     void               assign_channel_to_bus(ChannelID ch, BusID bus);
     void               remove_channel_from_bus(ChannelID ch);
     BusID              channel_bus(ChannelID ch) const;
+    void               set_bus_parent(BusID bus, BusID parent);
+    BusID              bus_parent(BusID bus) const;
     std::string        bus_name(BusID id) const;
     std::vector<BusID> all_buses() const;
 
@@ -68,6 +71,10 @@ public:
     // ── Pan law ────────────────────────────────────────────────
     void   set_pan_law(PanLaw law) { pan_law_ = law; }
     PanLaw pan_law() const         { return pan_law_; }
+
+    // ── Sidechain ──────────────────────────────────────────────
+    SidechainManager&       sidechain_manager()       { return sidechain_manager_; }
+    const SidechainManager& sidechain_manager() const { return sidechain_manager_; }
 
     // ── Processing ─────────────────────────────────────────────
     /// Main process call from the audio thread.
@@ -97,10 +104,11 @@ private:
     // Master channel
     ChannelID master_id_ = kInvalidChannelID;
 
-    // Bus definitions: BusID → vector of ChannelID
+    // Bus definitions: BusID → vector of ChannelID + parent hierarchy
     struct BusInfo {
         std::string name;
         std::vector<ChannelID> members;
+        BusID parent_bus = kInvalidBusID;  // parent group bus (kInvalidBusID = master)
     };
     std::unordered_map<BusID, BusInfo> buses_;
     BusID next_bus_id_ = 1;
@@ -116,6 +124,9 @@ private:
     // Cached processing order
     std::vector<ChannelID> processing_order_;
     bool order_dirty_ = true;
+
+    // Sidechain routing
+    SidechainManager sidechain_manager_;
 };
 
 } // namespace aria

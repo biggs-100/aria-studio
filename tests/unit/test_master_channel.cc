@@ -278,6 +278,88 @@ TEST_CASE("MasterChannel dither configuration", "[mixer][master][dither]") {
     }
 }
 
+TEST_CASE("MasterChannel dither produces shaped noise from silence", "[mixer][master][dither]") {
+    constexpr uint32_t kFrames = 512;
+    float in[kFrames], out[kFrames];
+
+    AudioBuffer input, output;
+    input.frames = output.frames = kFrames;
+    input.channels = output.channels = 1;
+    input.capacity = output.capacity = kFrames;
+    input.data[0] = in;
+    output.data[0] = out;
+
+    auto compute_peak_dbfs = [](const float* buf, uint32_t n) -> float {
+        float peak = 0.0f;
+        for (uint32_t i = 0; i < n; ++i) {
+            peak = std::max(peak, std::abs(buf[i]));
+        }
+        return (peak <= 1e-10f) ? -200.0f : 20.0f * std::log10(peak);
+    };
+
+    SECTION("triangular dither adds noise to silent input") {
+        MasterChannel mc;
+        mc.set_volume(0.0);
+
+        // Disable limiter to avoid interaction
+        MasterChannel::LimiterConfig cfg;
+        cfg.enabled = false;
+        mc.set_limiter(cfg);
+
+        // Silent input
+        std::memset(in, 0, sizeof(in));
+        std::memset(out, 0, sizeof(out));
+
+        mc.set_dither(MasterChannel::Triangular, 16);
+        mc.process(&input, &output, kFrames);
+
+        // Output should have non-zero samples (dither adds noise)
+        float peak_db = compute_peak_dbfs(out, kFrames);
+        REQUIRE(peak_db > -200.0f); // There IS noise added
+
+        // Noise should be below -60 dBFS (dither is low-level)
+        REQUIRE(peak_db < -60.0f);
+    }
+
+    SECTION("shaped dither adds noise to silent input") {
+        MasterChannel mc;
+        mc.set_volume(0.0);
+
+        MasterChannel::LimiterConfig cfg;
+        cfg.enabled = false;
+        mc.set_limiter(cfg);
+
+        std::memset(in, 0, sizeof(in));
+        std::memset(out, 0, sizeof(out));
+
+        mc.set_dither(MasterChannel::Shaped, 16);
+        mc.process(&input, &output, kFrames);
+
+        float peak_db = compute_peak_dbfs(out, kFrames);
+        REQUIRE(peak_db > -200.0f); // Noise is present
+        REQUIRE(peak_db < -60.0f);  // Below -60 dBFS
+    }
+
+    SECTION("without dither, silence stays silence") {
+        MasterChannel mc;
+        mc.set_volume(0.0);
+
+        MasterChannel::LimiterConfig cfg;
+        cfg.enabled = false;
+        mc.set_limiter(cfg);
+
+        std::memset(in, 0, sizeof(in));
+        std::memset(out, 0xFF, sizeof(out)); // Fill with garbage
+
+        mc.set_dither(MasterChannel::None, 16);
+        mc.process(&input, &output, kFrames);
+
+        // Output must be exactly zero (no dither added)
+        float peak_db = compute_peak_dbfs(out, kFrames);
+        REQUIRE(peak_db <= -200.0f);
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════
 //  FX Chain
 // ═══════════════════════════════════════════════════════════════════
