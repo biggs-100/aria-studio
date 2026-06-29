@@ -1,9 +1,13 @@
 #ifndef ARIA_PROJECT_MANAGER_H
 #define ARIA_PROJECT_MANAGER_H
 
+#include "mixer/mixer.h"
 #include "project/arrangement.h"
 #include "kernel/undo_stack.h"
+#include "model/session.h"
 #include "model/track.h"
+#include "model/track_types.h"
+#include "model/types.h"
 
 #include <cstdint>
 #include <memory>
@@ -23,13 +27,6 @@ struct ProjectID {
 };
 
 static constexpr ProjectID INVALID_PROJECT_ID{0};
-
-/// Clip identifier.
-struct ClipID {
-    uint64_t value = 0;
-    bool operator==(const ClipID& o) const { return value == o.value; }
-    bool operator!=(const ClipID& o) const { return value != o.value; }
-};
 
 } // namespace aria
 
@@ -76,11 +73,20 @@ public:
     /// Get the active project ID.
     ProjectID active_project() const { return active_project_; }
 
+    /// Get the track count for a project.
+    size_t track_count(ProjectID project) const;
+
     // ─── Track management ─────────────────────────────────────
 
     /// Create a new track in the given project.
     TrackID create_track(ProjectID project, TrackType type,
                          const std::string& name);
+
+    /// Create a typed AudioTrack.
+    TrackID create_audio_track(ProjectID project, const std::string& name);
+
+    /// Create a typed MidiTrack.
+    TrackID create_midi_track(ProjectID project, const std::string& name);
 
     /// Delete a track from the given project.
     bool delete_track(ProjectID project, TrackID track);
@@ -99,6 +105,21 @@ public:
                              const std::string& file);
     bool delete_clip(ClipID id);
 
+    // ─── Mixer bridge ─────────────────────────────────────────
+
+    /// Register a mapping from a model TrackID to a Mixer ChannelID.
+    void register_mixer_channel(TrackID track, ChannelID channel);
+
+    /// Sync group→children bus assignments to the mixer.
+    /// Creates buses for GroupTrack in Summing mode, assigns children,
+    /// and links nested groups.
+    void sync_group_routing(Mixer& mixer);
+
+    /// Sync VCA contributions to slave mixer channels.
+    /// Reads VCA volume, computes per-slave contribution, and pushes
+    /// to the mixer channel's vca_contribution_db_.
+    void sync_vca(Mixer& mixer);
+
     // ─── Undo integration ─────────────────────────────────────
 
     /// Access the undo stack for the given project.
@@ -110,6 +131,15 @@ public:
     Arrangement& get_arrangement(ProjectID id);
     const Arrangement& get_arrangement(ProjectID id) const;
 
+    // ─── Session access ───────────────────────────────────────
+
+    /// Create a session for the active project.
+    void create_session();
+
+    /// Get the session (nullptr if not yet created).
+    Session* get_session();
+    const Session* get_session() const;
+
 private:
     /// Per-project data.
     struct ProjectData {
@@ -119,6 +149,7 @@ private:
         Arrangement arrangement;
         UndoStack   undo;
         bool        modified = false;
+        std::unique_ptr<Session> session;
     };
 
     std::unordered_map<ProjectID, ProjectData> projects_;
@@ -135,6 +166,9 @@ private:
 
     /// Internal: find which project owns a track.
     ProjectData* find_project_for_track(TrackID id);
+
+    /// TrackID → ChannelID mapping for mixer bridge.
+    std::unordered_map<uint64_t, ChannelID> track_to_channel_;
 };
 
 } // namespace aria

@@ -107,6 +107,7 @@ set(AUDIO_SOURCES
     src/audio/tempo_map.cc
     src/audio/track_processor.cc
     src/audio/transport.cc
+    src/audio/wsola.cc
     # ── Export / Offline ────────────────────────────────────────
     src/audio/export/dither.cc
     src/audio/export/file_writer.cc
@@ -221,6 +222,13 @@ set(PLUGIN_SOURCES
 set(MODEL_SOURCES
     src/model/marker.cc
     src/model/track.cc
+    src/model/track_types.cc
+    src/model/session.cc
+    src/model/freeze_manager.cc
+    src/model/clip.cc
+    src/model/audio_clip.cc
+    src/model/automation_clip_wrapper.cc
+    src/model/routing.cc
 )
 
 set(TIMELINE_SOURCES

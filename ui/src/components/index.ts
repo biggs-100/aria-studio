@@ -10,11 +10,9 @@ export interface Component {
 export class Button implements Component {
   readonly id: string;
   readonly type = 'Button';
-  private label: string;
 
-  constructor(id: string, label: string) {
+  constructor(id: string, _label: string) {
     this.id = id;
-    this.label = label;
   }
 
   render(): void {

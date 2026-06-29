@@ -3,6 +3,7 @@
 
 #include "audio_buffer.h"
 #include "audio_node.h"
+#include "audio/wsola.h"
 #include "pdc_manager.h"
 
 #include <atomic>
@@ -15,14 +16,28 @@ namespace aria {
 // ─── Forward declarations ─────────────────────────────────────
 class AudioGraph;
 
+// ─── Clip playback slot ──────────────────────────────────────
+
+/// Describes a clip's audio contribution for one process block.
+struct ClipPlaybackSlot {
+    uint64_t start_ppqn = 0;      ///< Clip start in PPQN
+    uint64_t length_ppqn = 960;   ///< Clip duration in PPQN
+    const float* source_data = nullptr; ///< Audio sample data (null = silent)
+    uint32_t source_frames = 0;    ///< Total frames available in source_data
+    uint32_t source_channels = 1;  ///< Channels in source_data
+    double   gain = 1.0;           ///< Clip gain multiplier
+    bool     is_looping = false;   ///< Whether the clip loops
+};
+
 /// Per-track audio processing.
 ///
 /// Handles the real-time processing pipeline for a single track:
 ///   1. Read clips from the (future) model
 ///   2. Apply clip gain / automation
-///   3. Apply time stretch (placeholder)
-///   4. Route through the track's plugin chain
-///   5. Send to track output (bus or master)
+///   3. Apply time stretch (WSOLA or alternative)
+///   4. Apply crossfader gain
+///   5. Route through the track's plugin chain
+///   6. Send to track output (bus or master)
 ///
 /// All methods are real-time safe — no allocations, no locks.
 class TrackProcessor {
@@ -99,15 +114,41 @@ public:
     PDCManager& pdc() { return pdc_; }
     const PDCManager& pdc() const { return pdc_; }
 
-private:
-    /// Apply time-stretch to a buffer (placeholder — pass-through).
-    /// @param buffer  Input/output buffer.
-    /// @param frames  Number of frames.
-    /// @param sample_position  Global sample position (for time-stretching).
-    void apply_time_stretch(AudioBuffer* buffer, uint32_t frames,
-                            uint64_t sample_position);
+    // ─── Clip playback ──────────────────────────────────────────
 
-    /// Apply clip gain and panning to the input buffer.
+    /// Set the active clip slots for the current process block.
+    /// Called from the control thread before process().
+    void set_clip_slots(const std::vector<ClipPlaybackSlot>& slots) {
+        clip_slots_ = slots;
+        active_.store(!slots.empty(), std::memory_order_release);
+    }
+
+    /// Get the current clip slots.
+    const std::vector<ClipPlaybackSlot>& clip_slots() const { return clip_slots_; }
+
+    // ─── Crossfader gain ────────────────────────────────────────
+
+    /// Set per-track crossfader gain from the Session crossfader.
+    /// Range: 0.0 (silent) to 1.0 (unity).
+    void set_crossfader_gain(float gain) { crossfader_gain_ = gain; }
+    float crossfader_gain() const { return crossfader_gain_; }
+
+    // ─── Time stretch ───────────────────────────────────────────
+
+    /// Set the time-stretch algorithm for this track.
+    /// Default: none (pass-through). Can be WSOLAStretch or a stub.
+    void set_time_stretch_algorithm(std::unique_ptr<TimeStretchAlgorithm> algo) {
+        stretch_ = std::move(algo);
+    }
+
+    /// Access the current stretch algorithm (may be null).
+    TimeStretchAlgorithm* stretch_algorithm() const { return stretch_.get(); }
+
+private:
+    /// Apply time-stretch to the output buffer.
+    void apply_time_stretch(AudioBuffer* buffer, uint32_t frames);
+
+    /// Apply clip gain, crossfader gain, and panning to the buffer.
     void apply_clip_gain(AudioBuffer* buffer, uint32_t frames);
 
     uint32_t num_channels_ = 2;
@@ -116,6 +157,7 @@ private:
     // Track state
     float gain_ = 1.0f;
     float pan_ = 0.0f;
+    float crossfader_gain_ = 1.0f;
     std::atomic<bool> active_{false};
     std::atomic<bool> muted_{false};
     std::atomic<bool> soloed_{false};
@@ -127,9 +169,14 @@ private:
     PDCManager pdc_;
 
     // Per-block scratch buffer for plugin chain intermediate results.
-    // Pre-allocated at configure() time.
     std::vector<float> scratch_;
     uint32_t scratch_capacity_ = 0;
+
+    // Clip playback slots (set from control thread)
+    std::vector<ClipPlaybackSlot> clip_slots_;
+
+    // Time stretch algorithm (optional, default = null = pass-through)
+    std::unique_ptr<TimeStretchAlgorithm> stretch_;
 };
 
 } // namespace aria

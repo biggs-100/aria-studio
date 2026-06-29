@@ -1,7 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include "project/arrangement.h"
+#include "model/clip.h"
 #include "model/marker.h"
+#include "model/track.h"
+
+#include <memory>
 
 using namespace aria;
 
@@ -133,5 +137,103 @@ TEST_CASE("Arrangement — tempo track access", "[project][arrangement]") {
         arr.tempo_track().add_time_sig_event(0, 3, 4);
         auto ts = arr.tempo_track().time_sig_at(0);
         REQUIRE(ts.numerator == 3);
+    }
+}
+
+// ─── Clip_at ─────────────────────────────────────────────────────
+
+// Helper concrete Clip subclass for testing
+class TestClip : public Clip {
+public:
+    TestClip() : Clip() {}
+    explicit TestClip(uint64_t len) : Clip() { set_length(len); }
+};
+
+TEST_CASE("Track — clip_at position query", "[model][track][clip]") {
+    Track track(TrackType::Audio);
+
+    SECTION("no clips returns nullptr") {
+        REQUIRE(track.clip_at(0) == nullptr);
+        REQUIRE(track.clip_at(960) == nullptr);
+    }
+
+    SECTION("returns clip at exact position") {
+        auto clip = std::make_shared<TestClip>(960);
+        track.add_clip(clip, 0);
+
+        auto* found = track.clip_at(0);
+        REQUIRE(found != nullptr);
+        REQUIRE(found->id() == clip->id());
+    }
+
+    SECTION("returns clip within range") {
+        auto clip = std::make_shared<TestClip>(960);
+        track.add_clip(clip, 0);
+
+        auto* found = track.clip_at(480);
+        REQUIRE(found != nullptr);
+        REQUIRE(found->id() == clip->id());
+    }
+
+    SECTION("returns nullptr outside clip range") {
+        auto clip = std::make_shared<TestClip>(960);
+        track.add_clip(clip, 0);
+
+        REQUIRE(track.clip_at(960) == nullptr); // at end = not within
+        REQUIRE(track.clip_at(1920) == nullptr);
+    }
+
+    SECTION("multiple clips — finds correct one") {
+        auto clip1 = std::make_shared<TestClip>(960);
+        track.add_clip(clip1, 0);
+
+        auto clip2 = std::make_shared<TestClip>(960);
+        track.add_clip(clip2, 960);
+
+        REQUIRE(track.clip_at(0)->id() == clip1->id());
+        REQUIRE(track.clip_at(960)->id() == clip2->id());
+        REQUIRE(track.clip_at(480)->id() == clip1->id());
+        REQUIRE(track.clip_at(1440)->id() == clip2->id());
+    }
+}
+
+// ─── Visible tracks (folded groups) ─────────────────────────────
+
+TEST_CASE("Arrangement — visible tracks with folded groups",
+          "[project][arrangement]") {
+    Arrangement arr;
+    TrackID t1{1}, t2{2}, t3{3}, t4{4};
+
+    arr.insert_track(t1, 0);
+    arr.insert_track(t2, 1);
+    arr.insert_track(t3, 2);
+    arr.insert_track(t4, 3);
+
+    SECTION("no hidden tracks — all visible") {
+        auto visible = arr.visible_track_order([](TrackID) { return false; });
+        REQUIRE(visible.size() == 4);
+    }
+
+    SECTION("filters out hidden tracks") {
+        auto is_hidden = [](TrackID id) { return id == TrackID{2} || id == TrackID{3}; };
+        auto visible = arr.visible_track_order(is_hidden);
+        REQUIRE(visible.size() == 2);
+        REQUIRE(visible[0] == t1);
+        REQUIRE(visible[1] == t4);
+    }
+
+    SECTION("all hidden — empty result") {
+        auto is_hidden = [](TrackID) { return true; };
+        auto visible = arr.visible_track_order(is_hidden);
+        REQUIRE(visible.empty());
+    }
+
+    SECTION("predicate varied per call") {
+        auto visible1 = arr.visible_track_order([](TrackID id) { return id == TrackID{1}; });
+        REQUIRE(visible1.size() == 3);
+        REQUIRE(visible1[0] == t2);
+
+        auto visible2 = arr.visible_track_order([](TrackID) { return false; });
+        REQUIRE(visible2.size() == 4);
     }
 }

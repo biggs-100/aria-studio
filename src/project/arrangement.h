@@ -2,26 +2,15 @@
 #define ARIA_ARRANGEMENT_H
 
 #include "model/marker.h"
+#include "model/types.h"
 #include "timeline/tempo_track.h"
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <vector>
 
 namespace aria {
-
-/// Track identifier.
-struct TrackID {
-    uint64_t value = 0;
-
-    constexpr TrackID() = default;
-    constexpr explicit TrackID(uint64_t v) : value(v) {}
-
-    bool operator==(const TrackID& o) const { return value == o.value; }
-    bool operator!=(const TrackID& o) const { return value != o.value; }
-    bool operator==(uint64_t v) const { return value == v; }
-    bool operator!=(uint64_t v) const { return value != v; }
-};
 
 /// Arrangement — the timeline arrangement of tracks, clips, markers,
 /// loop ranges, tempo, and time signatures.
@@ -36,6 +25,12 @@ public:
 
     /// Get the display order of tracks.
     std::vector<TrackID> track_order() const;
+
+    /// Get visible tracks — excludes children of folded groups.
+    /// @param is_group_folded A predicate that returns true if a
+    ///        TrackID belongs to a folded GroupTrack.
+    std::vector<TrackID> visible_track_order(
+        const std::function<bool(TrackID)>& is_child_hidden) const;
 
     /// Move a track to a new index in the display order.
     void move_track(TrackID id, uint32_t new_index);

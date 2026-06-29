@@ -12,7 +12,6 @@ export interface UIEngineConfig {
 
 export class UIEngine {
   private config: UIEngineConfig;
-  private running = false;
 
   constructor(config: Partial<UIEngineConfig> = {}) {
     this.config = {
@@ -23,13 +22,12 @@ export class UIEngine {
     };
   }
 
-  async initialize(canvasElement: HTMLCanvasElement): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async initialize(_canvasElement: HTMLCanvasElement): Promise<void> {
     console.log('[ARIA UI] Initializing...', this.config);
-    this.running = true;
   }
 
   shutdown(): void {
-    this.running = false;
     console.log('[ARIA UI] Shutdown complete');
   }
 

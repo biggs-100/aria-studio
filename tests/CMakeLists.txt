@@ -61,6 +61,7 @@ add_executable(aria_slice3_tests
     unit/test_pdc.cc
     unit/test_multicore.cc
     unit/test_diagnostics.cc
+    unit/test_wsola.cc
     test_common/audio_harness.cc
 )
 
@@ -289,6 +290,132 @@ target_include_directories(aria_project_tests PRIVATE
 include(Catch)
 catch_discover_tests(aria_project_tests)
 
+# ── Session model tests (Phase 8b: Session C++ model) ────────────
+add_executable(aria_session_tests
+    unit/test_session.cc
+)
+
+target_link_libraries(aria_session_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_session_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_session_tests)
+
+# ── Model types tests (Phase 8: TrackID, ClipID, FadeShape) ──────
+add_executable(aria_model_types_tests
+    unit/test_model_types.cc
+)
+
+target_link_libraries(aria_model_types_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_model_types_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_model_types_tests)
+
+# ── Clip model tests (Phase 8: Clip base + evaluate_fade) ────────
+add_executable(aria_clip_tests
+    unit/test_clip.cc
+)
+
+target_link_libraries(aria_clip_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_clip_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_clip_tests)
+
+# ── AudioClip tests (Phase 8: AudioClip + WaveformCache) ─────────
+add_executable(aria_audio_clip_tests
+    unit/test_audio_clip.cc
+)
+
+target_link_libraries(aria_audio_clip_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_audio_clip_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_audio_clip_tests)
+
+# ── AutomationClipWrapper tests (Phase 8) ────────────────────────
+add_executable(aria_automation_wrapper_tests
+    unit/test_automation_clip_wrapper.cc
+)
+
+target_link_libraries(aria_automation_wrapper_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_automation_wrapper_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_automation_wrapper_tests)
+
+# ── FreezeManager tests (Phase 8b: Freeze & Bounce) ──────────────
+add_executable(aria_freeze_tests
+    unit/test_freeze_manager.cc
+)
+
+target_link_libraries(aria_freeze_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_freeze_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_freeze_tests)
+
+# ── Track types tests (Phase 8: Group/VCAT/Return/Master) ─────────
+add_executable(aria_track_types_tests
+    unit/test_track_types.cc
+)
+
+target_link_libraries(aria_track_types_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_track_types_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_track_types_tests)
+
 # ── Piano Roll tests (Slice 1: Note model, spatial index, renderer) ──
 add_executable(aria_pianoroll_tests
     unit/test_note.cc
@@ -506,3 +633,57 @@ target_include_directories(aria_automation_tests PRIVATE
 
 include(Catch)
 catch_discover_tests(aria_automation_tests)
+
+# ── Integration tests: Transport sync ──────────────────────────
+add_executable(aria_integration_transport_tests
+    integration/test_transport_sync.cc
+)
+
+target_link_libraries(aria_integration_transport_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_integration_transport_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_integration_transport_tests)
+
+# ── Integration tests: Freeze → unfreeze clip restoration ────
+add_executable(aria_integration_freeze_tests
+    integration/test_freeze_restore.cc
+)
+
+target_link_libraries(aria_integration_freeze_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_integration_freeze_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_integration_freeze_tests)
+
+# ── Integration tests: WSOLA polymorphism ─────────────────────
+add_executable(aria_integration_wsola_tests
+    integration/test_wsola_poly.cc
+)
+
+target_link_libraries(aria_integration_wsola_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_integration_wsola_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_integration_wsola_tests)

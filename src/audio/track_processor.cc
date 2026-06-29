@@ -69,18 +69,44 @@ void TrackProcessor::process(uint32_t frames, uint64_t sample_position,
             }
         }
     } else if (output) {
-        // Clear output if no input
-        for (uint32_t c = 0; c < output->channels && c < num_channels_; ++c) {
-            if (output->data[c]) {
-                simd_clear(output->data[c], frames);
+        // If no input but clips are active, render clip audio
+        if (!clip_slots_.empty() && active_.load(std::memory_order_relaxed)) {
+            // Render clip audio into output buffer
+            for (uint32_t c = 0; c < output->channels && c < num_channels_; ++c) {
+                if (output->data[c]) {
+                    // For now, just fill from the first clip slot (simplified)
+                    // Real implementation would compute per-sample PPQN position
+                    // and interpolate from the correct clip.
+                    if (!clip_slots_.empty() && clip_slots_[0].source_data) {
+                        const ClipPlaybackSlot& slot = clip_slots_[0];
+                        uint32_t copy_frames = std::min(frames, slot.source_frames);
+                        for (uint32_t i = 0; i < copy_frames; ++i) {
+                            output->data[c][i] = slot.source_data[i] * static_cast<float>(slot.gain);
+                        }
+                        if (copy_frames < frames) {
+                            simd_clear(&output->data[c][copy_frames], frames - copy_frames);
+                        }
+                    } else {
+                        simd_clear(output->data[c], frames);
+                    }
+                }
+            }
+        } else {
+            // Clear output if no input and no clips
+            for (uint32_t c = 0; c < output->channels && c < num_channels_; ++c) {
+                if (output->data[c]) {
+                    simd_clear(output->data[c], frames);
+                }
             }
         }
     }
 
-    // Apply time stretch (placeholder — currently pass-through)
-    apply_time_stretch(output, frames, sample_position);
+    // Apply time stretch (if algorithm is set)
+    if (stretch_) {
+        apply_time_stretch(output, frames);
+    }
 
-    // Apply clip gain
+    // Apply clip gain (includes crossfader gain)
     apply_clip_gain(output, frames);
 
     // Process through plugin chain
@@ -162,18 +188,53 @@ void TrackProcessor::process(uint32_t frames, uint64_t sample_position,
     }
 }
 
-void TrackProcessor::apply_time_stretch(AudioBuffer* /*buffer*/,
-                                         uint32_t /*frames*/,
-                                         uint64_t /*sample_position*/) {
-    // Placeholder — currently a pass-through.
-    // Future implementation will use a time-stretching algorithm (e.g.,
-    // WSOLA, phase vocoder, or elastique) to allow variable-speed playback.
+void TrackProcessor::apply_time_stretch(AudioBuffer* buffer,
+                                         uint32_t frames) {
+    if (!stretch_ || !buffer || frames == 0) return;
+
+    uint32_t ch = std::min(buffer->channels, num_channels_);
+    if (ch == 0) return;
+
+    // Convert AudioBuffer (per-channel arrays) to planar [ch0, ch1, ...]
+    uint32_t planar_needed = frames * ch;
+    // Use a local buffer since scratch_ may be in use by the plugin chain.
+    // In production, allocate planar scratch at configure() time.
+    std::vector<float> planar(planar_needed);
+    std::vector<float> result(planar_needed);
+
+    for (uint32_t c = 0; c < ch; ++c) {
+        if (buffer->data[c]) {
+            std::memcpy(&planar[c * frames], buffer->data[c],
+                        frames * sizeof(float));
+        } else {
+            std::memset(&planar[c * frames], 0, frames * sizeof(float));
+        }
+    }
+
+    uint32_t written = stretch_->process(planar.data(), result.data(),
+                                          frames, frames);
+
+    uint32_t copy_frames = std::min(written, frames);
+    for (uint32_t c = 0; c < ch; ++c) {
+        if (buffer->data[c]) {
+            std::memcpy(buffer->data[c], &result[c * frames],
+                        copy_frames * sizeof(float));
+        }
+    }
+    // Zero remaining frames if stretch produced fewer output than input
+    for (uint32_t c = 0; c < ch; ++c) {
+        if (buffer->data[c] && copy_frames < frames) {
+            std::memset(buffer->data[c] + copy_frames, 0,
+                        (frames - copy_frames) * sizeof(float));
+        }
+    }
 }
 
 void TrackProcessor::apply_clip_gain(AudioBuffer* buffer, uint32_t frames) {
     if (!buffer) return;
 
-    float g = gain_;
+    // Combine crossfader gain and track gain
+    float g = gain_ * crossfader_gain_;
     if (g == 1.0f && pan_ == 0.0f) return;  // no-op
 
     if (pan_ == 0.0f) {

@@ -1,6 +1,7 @@
 #include "arrangement.h"
 
 #include <algorithm>
+#include <functional>
 #include <utility>
 
 namespace aria {
@@ -36,6 +37,19 @@ void Arrangement::insert_track(TrackID id, uint32_t index) {
 void Arrangement::remove_track(TrackID id) {
     auto it = std::remove(track_order_.begin(), track_order_.end(), id);
     track_order_.erase(it, track_order_.end());
+}
+
+std::vector<TrackID> Arrangement::visible_track_order(
+    const std::function<bool(TrackID)>& is_child_hidden) const
+{
+    std::vector<TrackID> visible;
+    visible.reserve(track_order_.size());
+    for (auto id : track_order_) {
+        if (!is_child_hidden || !is_child_hidden(id)) {
+            visible.push_back(id);
+        }
+    }
+    return visible;
 }
 
 // ═══════════════════════════════════════════════════════════════
