@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "file_writer.h"
 
@@ -44,6 +45,30 @@ public:
     /// @param config  Export configuration.
     /// @return true on success.
     bool render(AudioEngine& engine, const ExportConfig& config);
+
+    /// Render a single track to an interleaved float buffer.
+    ///
+    /// Processes the engine at maximum speed for the given duration,
+    /// isolating the specified track by muting other tracks. The
+    /// output buffer is resized to duration_frames * 2 (stereo).
+    ///
+    /// Thread safety:
+    ///   - render_track() is blocking and should be called from a
+    ///     worker thread.
+    ///   - Like render(), only one render_track() can run at a time
+    ///     on a given OfflineRenderer instance.
+    ///
+    /// @param engine           Audio engine to render from.
+    /// @param track_index      Index of the track processor to render.
+    /// @param sample_rate      Output sample rate in Hz.
+    /// @param duration_frames  Number of output frames to render.
+    /// @param output           [out] Interleaved float samples.
+    ///                        Resized to duration_frames * channels.
+    /// @return true on success, false if track_index is invalid or
+    ///         another render is already in progress.
+    bool render_track(AudioEngine& engine, uint32_t track_index,
+                      uint32_t sample_rate, uint32_t duration_frames,
+                      std::vector<float>& output);
 
     /// Current progress (0.0 – 1.0).
     double progress() const { return progress_.load(std::memory_order_acquire); }

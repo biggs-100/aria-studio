@@ -47,7 +47,7 @@ TEST_CASE("OfflineRenderer lifecycle", "[audio][export][render]") {
 
         // This will attempt to render but may not produce audio
         // if the engine's graph is empty. We test the API contract.
-        bool result = renderer.render(engine, config);
+        /* [[maybe_unused]] */ bool result = renderer.render(engine, config);
 
         // After render completes (even if failed), should not be rendering
         REQUIRE_FALSE(renderer.is_rendering());
@@ -139,4 +139,77 @@ TEST_CASE("NormalizeMode enum values", "[audio][export][normalize]") {
     REQUIRE(static_cast<int>(NormalizeMode::None) == 0);
     REQUIRE(static_cast<int>(NormalizeMode::Peak) == 1);
     REQUIRE(static_cast<int>(NormalizeMode::LUFS) == 2);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// OfflineRenderer::render_track (PR 5: Freeze & Bounce)
+// ═══════════════════════════════════════════════════════════════════
+
+TEST_CASE("OfflineRenderer::render_track returns false without tracks",
+          "[audio][export][render][freeze]") {
+    AudioEngine engine;
+    REQUIRE(engine.init(48000, 256));
+
+    OfflineRenderer renderer;
+    std::vector<float> output;
+
+    SECTION("no tracks in engine → render fails") {
+        REQUIRE_FALSE(renderer.render_track(engine, 0, 48000, 48000, output));
+        REQUIRE(output.empty());
+    }
+
+    SECTION("invalid track index → render fails") {
+        REQUIRE_FALSE(renderer.render_track(engine, 99, 48000, 48000, output));
+        REQUIRE(output.empty());
+    }
+}
+
+TEST_CASE("OfflineRenderer::render_track with valid track produces buffer",
+          "[audio][export][render][freeze]") {
+    AudioEngine engine;
+    REQUIRE(engine.init(48000, 256));
+    engine.add_track();  // now we have track 0
+
+    OfflineRenderer renderer;
+    std::vector<float> output;
+
+    SECTION("renders one second of stereo at 48kHz") {
+        bool result = renderer.render_track(engine, 0, 48000, 48000, output);
+        REQUIRE(result);
+        REQUIRE(output.size() == 48000 * 2);
+    }
+
+    SECTION("half second at 48kHz") {
+        REQUIRE(renderer.render_track(engine, 0, 48000, 24000, output));
+        REQUIRE(output.size() == 24000 * 2);
+    }
+
+    SECTION("zero frames returns empty vector") {
+        REQUIRE(renderer.render_track(engine, 0, 48000, 0, output));
+        REQUIRE(output.empty());
+    }
+}
+
+TEST_CASE("OfflineRenderer::render_track with multiple tracks",
+          "[audio][export][render][freeze]") {
+    AudioEngine engine;
+    REQUIRE(engine.init(48000, 256));
+    engine.add_track();  // track 0
+    engine.add_track();  // track 1
+
+    OfflineRenderer renderer;
+    std::vector<float> output;
+
+    SECTION("each track render completes without error") {
+        REQUIRE(renderer.render_track(engine, 0, 48000, 480, output));
+        REQUIRE_FALSE(output.empty());
+
+        REQUIRE(renderer.render_track(engine, 1, 48000, 480, output));
+        REQUIRE_FALSE(output.empty());
+    }
+
+    SECTION("invalid track index returns false") {
+        REQUIRE_FALSE(renderer.render_track(engine, 99, 48000, 480, output));
+        REQUIRE(output.empty());
+    }
 }
