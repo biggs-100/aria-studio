@@ -232,9 +232,8 @@ TEST_CASE("MidiClip serialization roundtrip", "[midi][clip]") {
     MidiClip original;
 
     // Set metadata
-    original.length_ppqn = 3840;
-    original.loop_start_ppqn = 0;
-    original.loop_end_ppqn = 3840;
+    original.set_length(3840);
+    original.set_loop_range(0, 3840);
 
     // Add notes
     MidiNote note1;
@@ -269,9 +268,9 @@ TEST_CASE("MidiClip serialization roundtrip", "[midi][clip]") {
     MidiClip restored = MidiClip::deserialize(data);
 
     SECTION("metadata preserved") {
-        REQUIRE(restored.length_ppqn == original.length_ppqn);
-        REQUIRE(restored.loop_start_ppqn == original.loop_start_ppqn);
-        REQUIRE(restored.loop_end_ppqn == original.loop_end_ppqn);
+        REQUIRE(restored.length() == original.length());
+        REQUIRE(restored.loop_start() == original.loop_start());
+        REQUIRE(restored.loop_end() == original.loop_end());
     }
 
     SECTION("notes preserved") {

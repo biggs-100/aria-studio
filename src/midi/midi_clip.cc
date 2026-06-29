@@ -97,10 +97,10 @@ std::vector<uint8_t> MidiClip::serialize() const {
         data.insert(data.end(), bytes, bytes + sizeof(val));
     };
 
-    // Metadata
-    append(length_ppqn);
-    append(loop_start_ppqn);
-    append(loop_end_ppqn);
+    // Metadata (stored as uint32_t for backward compat)
+    append(static_cast<uint32_t>(this->length()));
+    append(static_cast<uint32_t>(this->loop_start()));
+    append(static_cast<uint32_t>(this->loop_end()));
 
     // Notes count
     uint32_t note_count = static_cast<uint32_t>(notes_.size());
@@ -166,10 +166,15 @@ MidiClip MidiClip::deserialize(const std::vector<uint8_t>& data) {
         return true;
     };
 
-    // Metadata
-    if (!read_bytes(&clip.length_ppqn, sizeof(clip.length_ppqn))) return clip;
-    if (!read_bytes(&clip.loop_start_ppqn, sizeof(clip.loop_start_ppqn))) return clip;
-    if (!read_bytes(&clip.loop_end_ppqn, sizeof(clip.loop_end_ppqn))) return clip;
+    // Metadata (stored as uint32_t for backward compat)
+    {
+        uint32_t len = 0, ls = 0, le = 0;
+        if (!read_bytes(&len, sizeof(len))) return clip;
+        if (!read_bytes(&ls, sizeof(ls))) return clip;
+        if (!read_bytes(&le, sizeof(le))) return clip;
+        clip.set_length(len);
+        clip.set_loop_range(ls, le);
+    }
 
     // Notes
     uint32_t note_count = 0;

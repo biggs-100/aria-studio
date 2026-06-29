@@ -364,7 +364,7 @@ TEST_CASE("MidiRecorder edge cases", "[midi][recorder]") {
         // CC should be stored as a clip-level event
         // (may also be empty if no active note to route to)
         // The key test: no crash, clip has correct length
-        REQUIRE(clip.length_ppqn >= 1920);
+        REQUIRE(clip.length() >= 1920);
     }
 
     SECTION("finalize_clip after stop_recording") {
@@ -451,9 +451,9 @@ TEST_CASE("MidiRecorder edge cases", "[midi][recorder]") {
 
         MidiClip clip = recorder.finalize_clip();
 
-        REQUIRE(clip.length_ppqn >= 1920); // At least 1 bar
-        REQUIRE(clip.loop_start_ppqn == 0);
-        REQUIRE(clip.loop_end_ppqn == clip.length_ppqn);
+        REQUIRE(clip.length() >= 1920); // At least 1 bar
+        REQUIRE(clip.loop_start() == 0);
+        REQUIRE(clip.loop_end() == clip.length());
     }
 }
 

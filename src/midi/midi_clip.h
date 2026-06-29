@@ -1,6 +1,7 @@
 #ifndef ARIA_MIDI_CLIP_H
 #define ARIA_MIDI_CLIP_H
 
+#include "model/clip.h"
 #include "midi_types.h"
 #include <cstdint>
 #include <vector>
@@ -9,14 +10,11 @@ namespace aria {
 
 /// A MIDI clip containing notes and events, used for sequencing and storage.
 ///
-/// Clips store notes with PPQN timing resolution and support quantize,
-/// humanize, transpose, and serialization operations.
-class MidiClip {
+/// Inherits from Clip (position, length, looping, fade, gain, mute).
+/// Adds note data, quantization, humanize, transpose, and serialization.
+class MidiClip : public Clip {
 public:
-    // ─── Metadata ────────────────────────────────────────────
-    uint32_t length_ppqn     = 0;
-    uint32_t loop_start_ppqn = 0;
-    uint32_t loop_end_ppqn   = 0;
+    MidiClip() = default;
 
     // ─── Notes ───────────────────────────────────────────────
     void add_note(const MidiNote& note);

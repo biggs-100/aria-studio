@@ -90,7 +90,7 @@ MidiClip MidiRecorder::finalize_clip() {
     }
 
     MidiClip clip;
-    clip.length_ppqn = 0;
+    uint64_t length_ppqn = 0;
 
     // Calculate clip length from the last note or event
     if (!completed_notes_.empty()) {
@@ -101,21 +101,21 @@ MidiClip MidiRecorder::finalize_clip() {
             });
         uint32_t end = max_end->start_ppqn + max_end->duration_ppqn;
         // Round up to nearest bar (4 beats = 4 * 480 = 1920 PPQN at default grid)
-        clip.length_ppqn = ((end / 1920) + 1) * 1920;
+        length_ppqn = ((end / 1920) + 1) * 1920;
     } else if (!clip_events_.empty()) {
         auto max_ev = std::max_element(clip_events_.begin(), clip_events_.end(),
             [](const MidiEvent& a, const MidiEvent& b) {
                 return a.ppqn_position < b.ppqn_position;
             });
-        clip.length_ppqn = ((max_ev->ppqn_position / 1920) + 1) * 1920;
+        length_ppqn = ((max_ev->ppqn_position / 1920) + 1) * 1920;
     } else {
-        clip.length_ppqn = 1920; // Minimum: 1 bar
+        length_ppqn = 1920; // Minimum: 1 bar
     }
 
-    if (clip.length_ppqn < 1920) clip.length_ppqn = 1920;
+    if (length_ppqn < 1920) length_ppqn = 1920;
 
-    clip.loop_start_ppqn = 0;
-    clip.loop_end_ppqn   = clip.length_ppqn;
+    clip.set_length(length_ppqn);
+    clip.set_loop_range(0, length_ppqn);
 
     // Transfer notes
     for (auto& note : completed_notes_) {
