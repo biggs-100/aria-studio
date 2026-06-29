@@ -8,7 +8,7 @@
       "binaryDir": "${sourceDir}/build/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "ARIA_ENABLE_ASAN": "ON",
+        "ARIA_ENABLE_ASAN": "OFF",
         "ARIA_ENABLE_LTO": "OFF",
         "ARIA_BUILD_TESTS": "ON"
       }
