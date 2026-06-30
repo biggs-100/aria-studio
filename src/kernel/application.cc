@@ -11,6 +11,11 @@
 #include "graphics/skia_canvas.h"
 #endif
 
+// Scripting integration (optional — guarded by ARIA_FEATURE_SCRIPTING)
+#ifdef ARIA_FEATURE_SCRIPTING
+#include "scripting/script_manager.h"
+#endif
+
 namespace aria {
 
 Application* Application::instance_ = nullptr;
@@ -50,6 +55,13 @@ int Application::run() {
         // Main loop — process events, dispatch commands, render frame
         event_bus_->dispatch_pending();
         command_queue_->process_pending();
+
+#ifdef ARIA_FEATURE_SCRIPTING
+        // Tick the scripting system — hot-reload checks, pending Lua callbacks
+        if (script_manager_) {
+            script_manager_->tick();
+        }
+#endif
 
 #ifdef ARIA_FEATURE_GPU
         // Tick the GPU render loop if configured

@@ -13,6 +13,7 @@ class UndoStack;
 class RenderLoop;
 class GraphicsEngine;
 class SkiaCanvas;
+class ScriptManager;
 
 /// Application — main application lifecycle manager.
 class Application {
@@ -30,6 +31,10 @@ public:
     /// non-owning pointer. Pass nullptr to disable GPU rendering.
     void set_render_loop(RenderLoop* loop) { render_loop_ = loop; }
 
+    /// Register a ScriptManager for the main loop tick.
+    /// Ownership remains with the caller; pass nullptr if scripting is disabled.
+    void set_script_manager(ScriptManager* mgr) { script_manager_ = mgr; }
+
     ServiceLocator& services() const;
     EventBus& events() const;
     CommandQueue& commands() const;
@@ -46,6 +51,9 @@ private:
 
     // GPU rendering (optional, non-owning pointers managed by init())
     RenderLoop* render_loop_ = nullptr;
+
+    // Scripting (optional, non-owning — registered via ServiceLocator)
+    ScriptManager* script_manager_ = nullptr;
 
     static Application* instance_;
 };
