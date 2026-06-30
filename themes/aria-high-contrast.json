@@ -1,0 +1,171 @@
+{
+  "$schema": "https://aria-daw.com/theme-schema-v1.json",
+  "name": "ARIA High Contrast",
+  "author": "ARIA Team",
+  "version": "1.0",
+  "description": "High contrast theme for accessibility",
+
+  "colors": {
+    "bg": {
+      "primary": "#000000",
+      "secondary": "#0D0D0D",
+      "tertiary": "#1A1A1A",
+      "surface": "#222222",
+      "elevated": "#2A2A2A",
+      "tooltip": "#333333",
+      "modal_overlay": "rgba(0, 0, 0, 0.8)"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#DDDDDD",
+      "tertiary": "#AAAAAA",
+      "disabled": "#666666",
+      "inverse": "#000000",
+      "link": "#66B2FF",
+      "error": "#FF6666",
+      "warning": "#FFCC00",
+      "success": "#66FF66"
+    },
+    "accent": {
+      "primary": "#FF9900",
+      "secondary": "#FFB84D",
+      "tertiary": "#E68A00",
+      "hover": "#FFAD33",
+      "pressed": "#CC7A00",
+      "muted": "rgba(255, 153, 0, 0.25)",
+      "glow": "rgba(255, 153, 0, 0.4)"
+    },
+    "border": {
+      "primary": "#FFFFFF",
+      "secondary": "#AAAAAA",
+      "focus": "#FF9900",
+      "error": "#FF6666",
+      "selected": "#66B2FF"
+    },
+    "track": {
+      "default": "#66B2FF",
+      "audio": "#66FF66",
+      "midi": "#FFCC00",
+      "group": "#FF6666",
+      "vca": "#FF66FF",
+      "return": "#66FFAA",
+      "master": "#FFFFFF",
+      "automation": "#FF9900"
+    },
+    "note": {
+      "velocity_low": "#66B2FF",
+      "velocity_mid": "#66FF66",
+      "velocity_high": "#FF884D",
+      "ghost": "rgba(255, 255, 255, 0.2)",
+      "selected_outline": "#FFFFFF",
+      "muted_pattern": "rgba(255, 255, 255, 0.15)"
+    },
+    "meter": {
+      "cold": "#66B2FF",
+      "warm": "#66FF66",
+      "hot": "#FFCC00",
+      "critical": "#FF6666",
+      "clip": "#FF0000",
+      "background": "#000000"
+    },
+    "waveform": {
+      "fill": "#66B2FF",
+      "outline": "#99CCFF",
+      "background": "#000000",
+      "grid": "#333333"
+    },
+    "scrollbar": {
+      "thumb": "#888888",
+      "thumb_hover": "#AAAAAA",
+      "track": "transparent"
+    },
+    "selection": {
+      "fill": "rgba(102, 178, 255, 0.25)",
+      "outline": "#66B2FF",
+      "text": "#FFFFFF"
+    },
+    "drag": {
+      "preview": "rgba(255, 153, 0, 0.35)",
+      "target_indicator": "#FF9900",
+      "ghost": "rgba(255, 255, 255, 0.25)"
+    }
+  },
+
+  "typography": {
+    "fontFamily": "Inter, -apple-system, sans-serif",
+    "fontSize": 13,
+    "font_family": {
+      "ui": "Inter, -apple-system, sans-serif",
+      "mono": "JetBrains Mono, SF Mono, monospace",
+      "display": "Inter, -apple-system, sans-serif"
+    },
+    "font_weight": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "font_size": {
+      "xs": 11,
+      "sm": 12,
+      "base": 13,
+      "md": 14,
+      "lg": 15,
+      "xl": 17,
+      "2xl": 19,
+      "3xl": 26,
+      "4xl": 34
+    },
+    "line_height": {
+      "tight": 1.3,
+      "normal": 1.5,
+      "relaxed": 1.7
+    },
+    "letter_spacing": {
+      "tight": -0.01,
+      "normal": 0,
+      "wide": 0.06
+    }
+  },
+
+  "spacing": {
+    "unit": 5,
+    "padding": 10,
+    "scale": {
+      "0": 0,
+      "1": 5,
+      "2": 10,
+      "3": 15,
+      "4": 20,
+      "5": 25,
+      "6": 30,
+      "8": 40,
+      "10": 50,
+      "12": 60,
+      "16": 80,
+      "20": 100,
+      "24": 120
+    },
+    "panel": {
+      "padding": "5",
+      "gap": "3",
+      "header_height": 36,
+      "footer_height": 28
+    },
+    "channel_strip": {
+      "width_narrow": 52,
+      "width_normal": 78,
+      "width_wide": 128,
+      "width_full": 208
+    },
+    "border_radius": {
+      "none": 0,
+      "sm": 3,
+      "md": 5,
+      "lg": 7,
+      "xl": 10,
+      "full": 9999
+    }
+  }
+}

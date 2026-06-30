@@ -10,6 +10,9 @@ class ServiceLocator;
 class EventBus;
 class CommandQueue;
 class UndoStack;
+class RenderLoop;
+class GraphicsEngine;
+class SkiaCanvas;
 
 /// Application — main application lifecycle manager.
 class Application {
@@ -21,6 +24,11 @@ public:
     int run();
     void shutdown();
     bool is_running() const;
+
+    /// Register a GPU RenderLoop for the main rendering loop.
+    /// Ownership remains with the caller; the Application stores a
+    /// non-owning pointer. Pass nullptr to disable GPU rendering.
+    void set_render_loop(RenderLoop* loop) { render_loop_ = loop; }
 
     ServiceLocator& services() const;
     EventBus& events() const;
@@ -35,6 +43,9 @@ private:
     std::unique_ptr<EventBus> event_bus_;
     std::unique_ptr<CommandQueue> command_queue_;
     std::unique_ptr<UndoStack> undo_stack_;
+
+    // GPU rendering (optional, non-owning pointers managed by init())
+    RenderLoop* render_loop_ = nullptr;
 
     static Application* instance_;
 };

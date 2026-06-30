@@ -253,15 +253,38 @@ ClipID ProjectManager::create_midi_clip(TrackID track_id,
 ClipID ProjectManager::create_audio_clip(TrackID track_id,
                                           uint64_t start_ppqn,
                                           const std::string& file) {
-    auto* pd = find_project_for_track(track_id);
-    if (!pd) return ClipID{0};
+    // Find the track
+    auto* track = find_track(track_id);
+    if (!track) return ClipID{0};
 
-    ClipID id{g_next_clip_id++};
-    (void)start_ppqn;
-    (void)file;
-    pd->modified = true;
-    pd->undo.push("Create audio clip", []{}, []{});
-    return id;
+    // Check track type supports audio clips
+    auto type = track->type();
+    if (type == TrackType::MIDI || type == TrackType::Return) {
+        return ClipID{0};  // MIDI and Return tracks do not support audio clips
+    }
+
+    // Create the audio clip
+    auto clip = std::make_shared<AudioClip>();
+    clip->set_file_path(file);
+
+    // Set clip name from the file name (strip directory)
+    auto pos = file.find_last_of("/\\");
+    std::string clip_name = (pos != std::string::npos) ? file.substr(pos + 1) : file;
+    clip->set_name(clip_name);
+
+    // Place clip on the track
+    if (!track->add_clip(clip, start_ppqn)) {
+        return ClipID{0};  // Track is frozen
+    }
+
+    // Mark project as modified and push undo
+    auto* pd = find_project_for_track(track_id);
+    if (pd) {
+        pd->modified = true;
+        pd->undo.push("Create audio clip: " + clip_name, []{}, []{});
+    }
+
+    return clip->id();
 }
 
 bool ProjectManager::delete_clip(ClipID id) {

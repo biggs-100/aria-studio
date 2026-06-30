@@ -1,8 +1,10 @@
 [workspace]
+resolver = "2"
 members = [
     "aria-database",
     "aria-filesystem",
     "aria-networking",
+    "aria-bridge",
 ]
 
 [workspace.package]

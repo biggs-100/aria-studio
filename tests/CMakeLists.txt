@@ -634,6 +634,189 @@ target_include_directories(aria_automation_tests PRIVATE
 include(Catch)
 catch_discover_tests(aria_automation_tests)
 
+# ── Graphics engine tests (GPU rendering, guarded by ARIA_FEATURE_GPU) ──
+if(ARIA_FEATURE_GPU)
+    add_executable(aria_graphics_tests
+        unit/test_graphics_engine.cc
+    )
+
+    target_link_libraries(aria_graphics_tests PRIVATE
+        aria_core
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(aria_graphics_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    include(Catch)
+    catch_discover_tests(aria_graphics_tests)
+
+    # ── SkiaCanvas tests (PR2: GPU 2D draw primitives) ───────────
+    add_executable(aria_skia_canvas_tests
+        unit/test_skia_canvas.cc
+    )
+
+    target_link_libraries(aria_skia_canvas_tests PRIVATE
+        aria_core
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(aria_skia_canvas_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    include(Catch)
+    catch_discover_tests(aria_skia_canvas_tests)
+
+    # ── RenderLoop tests (PR2: frame timing, budget, profiling) ──
+    add_executable(aria_render_loop_tests
+        unit/test_render_loop.cc
+    )
+
+    target_link_libraries(aria_render_loop_tests PRIVATE
+        aria_core
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(aria_render_loop_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    include(Catch)
+    catch_discover_tests(aria_render_loop_tests)
+
+    # ── Animation tests (P10c: easing, Animator, widget integration) ──
+add_executable(aria_animation_tests
+    unit/test_animation.cc
+)
+
+target_link_libraries(aria_animation_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_animation_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_animation_tests)
+
+# ── Widget tests (PR2: tree, layout, hit-test, paint) ────────
+    add_executable(aria_widget_tests
+        unit/test_widget.cc
+    )
+
+    target_link_libraries(aria_widget_tests PRIVATE
+        aria_core
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(aria_widget_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    include(Catch)
+    catch_discover_tests(aria_widget_tests)
+
+    # ── ContainerWidget tests (PR2: clipping, transform, scroll) ─
+    add_executable(aria_widget_container_tests
+        unit/test_widget_container.cc
+    )
+
+    target_link_libraries(aria_widget_container_tests PRIVATE
+        aria_core
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(aria_widget_container_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    include(Catch)
+    catch_discover_tests(aria_widget_container_tests)
+
+    # ── FFI bridge tests (PR3: JSON → SkiaCanvas, event dispatch) ─
+    add_executable(aria_ffi_bridge_tests
+        unit/test_ffi_bridge.cc
+    )
+
+    target_link_libraries(aria_ffi_bridge_tests PRIVATE
+        aria_core
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(aria_ffi_bridge_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    include(Catch)
+    catch_discover_tests(aria_ffi_bridge_tests)
+
+    # ── Browser GPU panel tests (PR3: tree node, waveform, panel) ─
+    add_executable(aria_browser_gpu_tests
+        unit/test_browser_panel_gpu.cc
+    )
+
+    target_link_libraries(aria_browser_gpu_tests PRIVATE
+        aria_core
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(aria_browser_gpu_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    include(Catch)
+    catch_discover_tests(aria_browser_gpu_tests)
+
+    # ── Input system tests (P10c: FocusManager, ShortcutManager,
+    #     EventDispatcher touch/pen, Widget accessibility) ─────────
+    add_executable(aria_input_system_tests
+        unit/test_input_system.cc
+    )
+
+    target_link_libraries(aria_input_system_tests PRIVATE
+        aria_core
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(aria_input_system_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    include(Catch)
+    catch_discover_tests(aria_input_system_tests)
+endif()
+
+# ── Theme engine tests (not GPU-dependent) ──────────────────────────
+add_executable(aria_theme_tests
+    unit/test_theme.cc
+)
+
+target_link_libraries(aria_theme_tests PRIVATE
+    aria_core
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(aria_theme_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/tests
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+include(Catch)
+catch_discover_tests(aria_theme_tests)
+
 # ── Integration tests: Transport sync ──────────────────────────
 add_executable(aria_integration_transport_tests
     integration/test_transport_sync.cc
@@ -687,3 +870,117 @@ target_include_directories(aria_integration_wsola_tests PRIVATE
 
 include(Catch)
 catch_discover_tests(aria_integration_wsola_tests)
+
+# ── Database integration tests (requires Rust aria-bridge staticlib) ──
+# The Rust static library must be built separately via `cargo build` before
+# these tests can link. If the library is not found, the target is skipped.
+if(ARIA_BUILD_TESTS)
+    # Try to locate the compiled Rust bridge static library
+    set(RUST_TARGET_DIR "${CMAKE_SOURCE_DIR}/rust/target")
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(RUST_PROFILE "release")
+    else()
+        set(RUST_PROFILE "debug")
+    endif()
+
+    if(WIN32)
+        set(RUST_LIB_NAME "aria_bridge")
+        set(RUST_LIB_SUFFIX ".lib")
+    else()
+        set(RUST_LIB_NAME "aria_bridge")
+        set(RUST_LIB_SUFFIX ".a")
+    endif()
+
+    find_library(ARIA_BRIDGE_LIB
+        NAMES ${RUST_LIB_NAME}
+        PATHS "${RUST_TARGET_DIR}/${RUST_PROFILE}"
+        NO_DEFAULT_PATH
+    )
+
+    if(ARIA_BRIDGE_LIB)
+        message(STATUS "Found aria_bridge: ${ARIA_BRIDGE_LIB}")
+
+        # ── Browser engine tests (P9: Engine, Search, Preview, Waveform) ──
+        add_executable(aria_browser_tests
+            test_browser.cpp
+        )
+
+        target_link_libraries(aria_browser_tests PRIVATE
+            aria_core
+            ${ARIA_BRIDGE_LIB}
+            Catch2::Catch2WithMain
+        )
+
+        target_include_directories(aria_browser_tests PRIVATE
+            ${CMAKE_SOURCE_DIR}/tests
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/rust/include
+        )
+
+        if(WIN32)
+            target_link_libraries(aria_browser_tests PRIVATE
+                userenv ws2_32 advapi32
+            )
+        endif()
+
+        include(Catch)
+        catch_discover_tests(aria_browser_tests)
+
+        # ── DB integration tests ────────────────────────────────────────
+        add_executable(aria_db_integration_tests
+            test_db_integration.cpp
+        )
+
+        target_link_libraries(aria_db_integration_tests PRIVATE
+            aria_core
+            ${ARIA_BRIDGE_LIB}
+            Catch2::Catch2WithMain
+        )
+
+        target_include_directories(aria_db_integration_tests PRIVATE
+            ${CMAKE_SOURCE_DIR}/tests
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/rust/include
+        )
+
+        # Windows needs additional system libs for the Rust static lib
+        if(WIN32)
+            target_link_libraries(aria_db_integration_tests PRIVATE
+                userenv ws2_32 advapi32
+            )
+        endif()
+
+        include(Catch)
+        catch_discover_tests(aria_db_integration_tests)
+
+        # ── File watcher manual test (requires real filesystem events) ──
+        add_executable(aria_watcher_manual_test
+            test_watcher_manual.cpp
+        )
+
+        target_link_libraries(aria_watcher_manual_test PRIVATE
+            aria_core
+            ${ARIA_BRIDGE_LIB}
+            Catch2::Catch2WithMain
+        )
+
+        target_include_directories(aria_watcher_manual_test PRIVATE
+            ${CMAKE_SOURCE_DIR}/tests
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/rust/include
+        )
+
+        if(WIN32)
+            target_link_libraries(aria_watcher_manual_test PRIVATE
+                userenv ws2_32 advapi32
+            )
+        endif()
+
+        # Manual tests are NOT auto-discovered — run explicitly with:
+        # ctest --preset debug -R "watcher_manual" -V
+        # They require filesystem event generation on the host OS.
+    else()
+        message(STATUS "aria_bridge static library not found at ${RUST_TARGET_DIR}/${RUST_PROFILE}/ — skipping DB integration tests & watcher manual tests")
+        message(STATUS "  Build Rust libs first: cd rust && cargo build")
+    endif()
+endif()

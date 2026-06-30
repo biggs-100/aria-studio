@@ -1,6 +1,7 @@
 // ARIA DAW — File System Module
 // File indexing, watching, and metadata extraction.
 
+pub mod metadata;
 pub mod scanner;
 pub mod watcher;
 
@@ -10,6 +11,7 @@ pub const SUPPORTED_AUDIO_EXTENSIONS: &[&str] = &[
     "m4a", "wma", "aac", "wv", "opus",
 ];
 
+#[derive(Debug)]
 pub struct FileInfo {
     pub path: String,
     pub file_size: u64,
@@ -29,7 +31,12 @@ impl FileInfo {
     }
 
     pub fn is_project(&self) -> bool {
-        self.extension.to_lowercase() == "aria"
+        matches!(self.extension.to_lowercase().as_str(), "aria" | "aria.auto" | "aria.bak" | "aria.template")
+    }
+
+    pub fn is_preset(&self) -> bool {
+        matches!(self.extension.to_lowercase().as_str(),
+            "clap-preset" | "fxp" | "fxb" | "vstpreset" | "aupreset")
     }
 }
 

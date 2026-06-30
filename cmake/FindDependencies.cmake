@@ -1,40 +1,10 @@
 # ── Dependency Discovery ─────────────────────────────────────
 
-# Skia
+# Dawn WebGPU (Google) / Skia GPU — FetchContent from source
+# See: cmake/FindDawn.cmake and cmake/FindSkiaFetch.cmake
 if(ARIA_FEATURE_GPU)
-    find_package(Skia QUIET)
-    if(NOT Skia_FOUND)
-        message(STATUS "Skia not found via find_package, using custom path")
-        set(SKIA_DIR "" CACHE PATH "Path to Skia installation")
-        if(SKIA_DIR)
-            set(SKIA_LIBRARIES "${SKIA_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}skia${CMAKE_STATIC_LIBRARY_SUFFIX}")
-            set(SKIA_INCLUDE_DIRS "${SKIA_DIR}/include")
-            mark_as_advanced(SKIA_DIR)
-        else()
-            message(WARNING "Skia not found. GPU rendering will not be available. "
-                            "Set SKIA_DIR or install Skia via vcpkg.")
-        endif()
-    else()
-        set(SKIA_LIBRARIES Skia::skia)
-    endif()
-endif()
-
-# WebGPU (Dawn or wgpu-native)
-if(ARIA_FEATURE_GPU)
-    find_package(webgpu QUIET)
-    if(NOT webgpu_FOUND)
-        message(STATUS "WebGPU not found via find_package")
-        set(WEBGPU_DIR "" CACHE PATH "Path to WebGPU (Dawn/wgpu) installation")
-        if(WEBGPU_DIR)
-            set(WEBGPU_LIBRARIES "${WEBGPU_DIR}/lib/webgpu${CMAKE_SHARED_LIBRARY_SUFFIX}")
-            set(WEBGPU_INCLUDE_DIRS "${WEBGPU_DIR}/include")
-            mark_as_advanced(WEBGPU_DIR)
-        else()
-            message(WARNING "WebGPU not found. Set WEBGPU_DIR or install via vcpkg.")
-        endif()
-    else()
-        set(WEBGPU_LIBRARIES webgpu::webgpu)
-    endif()
+    include(cmake/FindDawn.cmake)
+    include(cmake/FindSkiaFetch.cmake)
 endif()
 
 # Lua 5.4 (only when scripting is enabled)
@@ -99,32 +69,66 @@ if(ARIA_BUILD_TESTS)
     list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 endif()
 
-# nlohmann_json (JSON serialization for blacklist + scanner cache)
-include(FetchContent)
-FetchContent_Declare(
-    nlohmann_json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3
-)
-FetchContent_MakeAvailable(nlohmann_json)
+# ImGui (provisional browser UI, refined in P10)
+# ImGui is optional. Set IMGUI_DIR to the path containing imgui.h and
+# the ARIA_FEATURE_IMGUI flag will be enabled automatically.
+# Example: cmake -DIMGUI_DIR=C:/path/to/imgui ..
+if(DEFINED IMGUI_DIR AND EXISTS "${IMGUI_DIR}/imgui.h")
+    add_library(aria_imgui INTERFACE)
+    target_include_directories(aria_imgui INTERFACE "${IMGUI_DIR}")
+    target_compile_definitions(aria_imgui INTERFACE ARIA_FEATURE_IMGUI=1)
+    message(STATUS "ImGui: found at ${IMGUI_DIR}")
+else()
+    # ImGui not available — browser_panel.cc will compile as empty stubs.
+    # Refined browser UI in P10 may add a FetchContent or vcpkg dependency.
+    add_library(aria_imgui INTERFACE)
+    message(STATUS "ImGui: not found — browser panel disabled (set IMGUI_DIR to enable)")
+endif()
 
-# fmt (logging)
-include(FetchContent)
-FetchContent_Declare(
-    fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG 10.2.1
-)
-FetchContent_MakeAvailable(fmt)
+# nlohmann_json (JSON serialization) — vendored in vendor/json/ takes precedence
+if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/json/include/nlohmann/json.hpp")
+    message(STATUS "nlohmann_json: using vendored headers from vendor/json/")
+    add_library(nlohmann_json INTERFACE)
+    target_include_directories(nlohmann_json INTERFACE "${CMAKE_SOURCE_DIR}/vendor/json/include")
+else()
+    include(FetchContent)
+    FetchContent_Declare(
+        nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.11.3
+    )
+    FetchContent_MakeAvailable(nlohmann_json)
+endif()
 
-# spdlog (logging)
-include(FetchContent)
-FetchContent_Declare(
-    spdlog
-    GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.13.0
-)
-FetchContent_MakeAvailable(spdlog)
+# fmt (logging) — vendored in vendor/fmt/ takes precedence
+if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/fmt/include/fmt/core.h")
+    message(STATUS "fmt: using vendored headers from vendor/fmt/")
+    add_library(fmt INTERFACE)
+    target_include_directories(fmt INTERFACE "${CMAKE_SOURCE_DIR}/vendor/fmt/include")
+else()
+    include(FetchContent)
+    FetchContent_Declare(
+        fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+        GIT_TAG 10.2.1
+    )
+    FetchContent_MakeAvailable(fmt)
+endif()
+
+# spdlog (logging) — vendored in vendor/spdlog/ takes precedence
+if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/spdlog/include/spdlog/spdlog.h")
+    message(STATUS "spdlog: using vendored headers from vendor/spdlog/")
+    add_library(spdlog INTERFACE)
+    target_include_directories(spdlog INTERFACE "${CMAKE_SOURCE_DIR}/vendor/spdlog/include")
+else()
+    include(FetchContent)
+    FetchContent_Declare(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.13.0
+    )
+    FetchContent_MakeAvailable(spdlog)
+endif()
 
 # CLAP (header-only C API, optional — vendored headers in vendor/clap/ take precedence)
 # FetchContent provides the canonical CLAP headers from the upstream repository.
@@ -152,8 +156,8 @@ endif()
 message(STATUS "ARIA DAW Build Configuration:")
 message(STATUS "  C++ Standard:    23")
 message(STATUS "  Build Type:      ${CMAKE_BUILD_TYPE}")
-message(STATUS "  Skia:            ${SKIA_FOUND}")
-message(STATUS "  WebGPU:          ${WEBGPU_FOUND}")
+message(STATUS "  Dawn:            ${Dawn_FOUND}")
+message(STATUS "  Skia:            ${Skia_FOUND}")
 message(STATUS "  Lua:             ${Lua_FOUND}")
 message(STATUS "  SQLite:          ${SQLite3_FOUND}")
 message(STATUS "  ZSTD:            ${zstd_FOUND}")

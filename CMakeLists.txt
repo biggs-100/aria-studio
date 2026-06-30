@@ -5,6 +5,7 @@ project(aria-daw VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
 # ── Options ───────────────────────────────────────────────────
 option(ARIA_BUILD_TESTS "Build tests" ON)
@@ -241,6 +242,49 @@ set(PROJECT_SOURCES
     src/project/arrangement.cc
 )
 
+# ── Browser sources (P9: File Browser, Search, Preview, Waveform) ──
+set(BROWSER_SOURCES
+    src/browser/browser_engine.cc
+    src/browser/search_provider.cc
+    src/browser/preview_player.cc
+    src/browser/waveform_cache.cc
+    src/browser/browser_panel.cc
+    src/browser/arrangement_drop_target.cc
+)
+
+# ── Graphics sources (ALL guarded by ARIA_FEATURE_GPU) ──
+# These depend on Dawn+Skia which may not be available.
+set(GRAPHICS_SOURCES "")
+
+if(ARIA_FEATURE_GPU)
+    list(APPEND GRAPHICS_SOURCES
+        src/graphics/graphics_engine.cc
+        src/graphics/animator.cc
+        src/graphics/skia_canvas.cc
+        src/graphics/widget.cc
+        src/graphics/widget_rect.cc
+        src/graphics/widget_text.cc
+        src/graphics/widget_button.cc
+        src/graphics/widget_container.cc
+        src/graphics/layout_engine.cc
+        src/graphics/dirty_tracker.cc
+        src/graphics/render_loop.cc
+        src/graphics/focus_manager.cc
+        src/graphics/shortcut_manager.cc
+        src/graphics/ffi/bridge.cc
+        src/graphics/ffi/event_dispatcher.cc
+        src/graphics/theme_engine.cc
+        src/graphics/widget_themed.cc
+        src/graphics/file_watcher.cc
+        src/browser/browser_panel_gpu.cc
+        src/browser/browser_engine.cc
+        src/browser/search_provider.cc
+        src/browser/preview_player.cc
+        src/browser/waveform_cache.cc
+        src/browser/arrangement_drop_target.cc
+    )
+endif()
+
 # ── Automation sources ──────────────────────────────────────────
 set(AUTOMATION_SOURCES
     src/automation/automation_engine.cc
@@ -278,6 +322,8 @@ add_library(aria_core STATIC
     ${MIXER_SOURCES}
     ${PLUGIN_SOURCES}
     ${AUTOMATION_SOURCES}
+    ${BROWSER_SOURCES}
+    ${GRAPHICS_SOURCES}
 )
 
 target_include_directories(aria_core PUBLIC
@@ -289,6 +335,29 @@ target_include_directories(aria_core PUBLIC
 # CLAP include directory (from FindDependencies: vendored or FetchContent)
 if(CLAP_INCLUDE_DIR)
     target_include_directories(aria_core PRIVATE ${CLAP_INCLUDE_DIR})
+endif()
+
+# GPU / Graphics include directory
+if(ARIA_FEATURE_GPU)
+    target_include_directories(aria_core PRIVATE ${CMAKE_SOURCE_DIR}/src/graphics)
+    target_compile_definitions(aria_core PRIVATE ARIA_FEATURE_GPU)
+
+    # Dawn WebGPU platform-specific link dependencies
+    if(WIN32)
+        target_link_libraries(aria_core PRIVATE dxgi d3d12 d3d11)
+    elseif(APPLE)
+        target_link_libraries(aria_core PRIVATE
+            "-framework Metal"
+            "-framework QuartzCore"
+            "-framework Foundation"
+            "-framework IOSurface"
+        )
+    elseif(UNIX)
+        find_package(Vulkan QUIET)
+        if(Vulkan_FOUND)
+            target_link_libraries(aria_core PRIVATE Vulkan::Vulkan)
+        endif()
+    endif()
 endif()
 
 # VST3 compile definition (enables VST3 code paths)
@@ -309,9 +378,10 @@ endif()
 target_link_libraries(aria_core PUBLIC
     aria_rust
     aria_ui_bundle
-    nlohmann_json::nlohmann_json
+    aria_imgui
+    nlohmann_json
     ${SKIA_LIBRARIES}
-    ${WEBGPU_LIBRARIES}
+    ${DAWN_LIBRARIES}
     ${LUA_LIBRARIES}
     ${SQLITE_LIBRARIES}
     ${ZSTD_LIBRARIES}
