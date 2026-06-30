@@ -984,3 +984,70 @@ if(ARIA_BUILD_TESTS)
         message(STATUS "  Build Rust libs first: cd rust && cargo build")
     endif()
 endif()
+
+# ── File watcher tests (PR 3: platform backends + debounce) ──
+# NOTE: file_watcher.cc is compiled directly here because aria_core
+# has pre-existing VST3 compilation errors when building on Windows.
+if(ARIA_FEATURE_SCRIPTING)
+    add_executable(aria_file_watcher_tests
+        scripting/test_file_watcher.cc
+        ${CMAKE_SOURCE_DIR}/src/graphics/file_watcher.cc
+    )
+
+    target_link_libraries(aria_file_watcher_tests PRIVATE
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(aria_file_watcher_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    include(Catch)
+    catch_discover_tests(aria_file_watcher_tests)
+endif()
+
+# ── Scripting build tests (PR 1: Infrastructure verification) ──
+if(ARIA_FEATURE_SCRIPTING)
+    add_executable(aria_scripting_tests
+        scripting/test_scripting_build.cc
+        scripting/test_lua_runtime.cc
+        scripting/test_script_instance.cc
+        scripting/test_script_manager.cc
+        scripting/test_api_bindings.cc
+        scripting/test_action_registry.cc
+        scripting/test_macro_recorder.cc
+        scripting/test_script_window.cc
+    )
+
+    target_link_libraries(aria_scripting_tests PRIVATE
+        aria_scripting
+        lualib
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(aria_scripting_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_SOURCE_DIR}/src
+        ${LUA_INCLUDE_DIR}
+        ${CMAKE_SOURCE_DIR}/vendor/sol2/include
+    )
+
+    include(Catch)
+    catch_discover_tests(aria_scripting_tests)
+else()
+    add_executable(aria_scripting_tests
+        scripting/test_scripting_build.cc
+    )
+
+    target_link_libraries(aria_scripting_tests PRIVATE
+        Catch2::Catch2WithMain
+    )
+
+    target_include_directories(aria_scripting_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/tests
+    )
+
+    include(Catch)
+    catch_discover_tests(aria_scripting_tests)
+endif()

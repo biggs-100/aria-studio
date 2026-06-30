@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(aria-daw VERSION 0.1.0 LANGUAGES CXX)
+project(aria-daw VERSION 0.1.0 LANGUAGES C CXX)
 
 # ── C++ Standard ──────────────────────────────────────────────
 set(CMAKE_CXX_STANDARD 23)
@@ -395,6 +395,12 @@ add_executable(aria
 )
 
 target_link_libraries(aria PRIVATE aria_core)
+
+# ── Scripting Library ─────────────────────────────────────────
+if(ARIA_FEATURE_SCRIPTING)
+    add_subdirectory(src/scripting)
+    target_link_libraries(aria PRIVATE aria_scripting)
+endif()
 
 # ── Tests ─────────────────────────────────────────────────────
 if(ARIA_BUILD_TESTS)
