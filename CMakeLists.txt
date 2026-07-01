@@ -339,7 +339,15 @@ endif()
 
 # GPU / Graphics include directory
 if(ARIA_FEATURE_GPU)
-    target_include_directories(aria_core PRIVATE ${CMAKE_SOURCE_DIR}/src/graphics)
+    target_include_directories(aria_core PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/graphics
+        ${CMAKE_SOURCE_DIR}/vendor/skia
+        ${CMAKE_SOURCE_DIR}/vendor/skia/include
+        ${CMAKE_SOURCE_DIR}/vendor/skia/include/core
+        ${CMAKE_SOURCE_DIR}/vendor/skia/include/gpu
+        ${CMAKE_SOURCE_DIR}/vendor/skia/include/gpu/graphite
+        ${CMAKE_SOURCE_DIR}/vendor/skia/include/gpu/graphite/dawn
+    )
     target_compile_definitions(aria_core PRIVATE ARIA_FEATURE_GPU)
 
     # Dawn WebGPU platform-specific link dependencies

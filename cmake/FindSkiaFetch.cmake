@@ -70,7 +70,7 @@ set(SKIA_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/skia_build" CACHE INTERNAL "")
 
 # ── GN arguments ───────────────────────────────────────────────
 # These mirror the design decisions for GPU-backed Skia with Dawn.
-# See: design.md ADR — Skia backend: Ganesh (GPU), Dawn FetchContent.
+# See: design.md ADR — Skia backend: Graphite (GPU), Dawn FetchContent.
 
 set(SKIA_GN_ARGS
     "skia_enable_gpu=true"
@@ -93,25 +93,29 @@ set(SKIA_GN_ARGS
     "skia_use_harfbuzz=false"
     "skia_use_sfntly=false"
     "skia_use_freetype=false"
-    "extra_cflags=[\"-DSKIA_C_API\"]"
     "is_official_build=true"
 )
 
 if(MSVC)
     list(APPEND SKIA_GN_ARGS
-        "extra_cflags=[\"/utf-8\", \"/arch:AVX2\"]"
+        "extra_cflags=[\"-DSKIA_C_API\", \"/utf-8\", \"/arch:AVX2\"]"
+        "skia_python_executable=\"python\""
     )
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     list(APPEND SKIA_GN_ARGS
-        "extra_cflags=[\"-ffast-math\", \"-march=native\"]"
+        "extra_cflags=[\"-DSKIA_C_API\", \"-ffast-math\", \"-march=native\"]"
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     list(APPEND SKIA_GN_ARGS
-        "extra_cflags=[\"-ffast-math\", \"-march=native\"]"
+        "extra_cflags=[\"-DSKIA_C_API\", \"-ffast-math\", \"-march=native\"]"
+    )
+else()
+    list(APPEND SKIA_GN_ARGS
+        "extra_cflags=[\"-DSKIA_C_API\"]"
     )
 endif()
 
-string(REPLACE ";" " " SKIA_GN_ARGS_STR "${SKIA_GN_ARGS}")
+string(REPLACE ";" "\n" SKIA_GN_ARGS_STR "${SKIA_GN_ARGS}")
 
 # ── Custom build target ────────────────────────────────────────
 # Skia's GN build is invoked via add_custom_target so it runs at
@@ -119,17 +123,26 @@ string(REPLACE ";" " " SKIA_GN_ARGS_STR "${SKIA_GN_ARGS}")
 # stalls and allows parallel builds.
 
 if(NOT TARGET skia_build)
-    add_custom_target(skia_build
-        COMMAND ${SKIA_GN} gen "${SKIA_OUT_DIR}"
-            --args="${SKIA_GN_ARGS_STR}"
-        COMMAND ${SKIA_NINJA} -C "${SKIA_OUT_DIR}" skia
-        COMMENT "Building Skia (GN + ninja)..."
-        BYPRODUCTS
-            "${SKIA_OUT_DIR}/libskia.a"
-            "${SKIA_OUT_DIR}/libskia_gpu.a"
-        WORKING_DIRECTORY ${skia_SOURCE_DIR}
-        USES_TERMINAL
-    )
+    # Use existing Skia build if available (faster), otherwise trigger GN+ninja.
+    if(EXISTS "${SKIA_OUT_DIR}/skia.lib")
+        message(STATUS "Skia: using existing build at ${SKIA_OUT_DIR}/skia.lib")
+    else()
+        message(STATUS "Skia: triggering GN+ninja build...")
+        # Write args.gn (GN reads this automatically from the output directory)
+        # instead of passing --args= on the command line, which has quoting
+        # issues with MSBuild/CMake on Windows.
+        file(WRITE "${SKIA_OUT_DIR}/args.gn" "${SKIA_GN_ARGS_STR}\n")
+        add_custom_target(skia_build
+            COMMAND ${SKIA_GN} gen "${SKIA_OUT_DIR}"
+            COMMAND ${SKIA_NINJA} -C "${SKIA_OUT_DIR}" skia
+            COMMENT "Building Skia (GN + ninja)..."
+            BYPRODUCTS
+                "${SKIA_OUT_DIR}/libskia.a"
+                "${SKIA_OUT_DIR}/libskia_gpu.a"
+            WORKING_DIRECTORY ${skia_SOURCE_DIR}
+            USES_TERMINAL
+        )
+    endif()
 endif()
 
 # ── Imported targets ───────────────────────────────────────────
@@ -138,11 +151,13 @@ endif()
 
 if(NOT TARGET Skia::skia)
     add_library(Skia::skia STATIC IMPORTED GLOBAL)
-    add_dependencies(Skia::skia skia_build)
+    if(TARGET skia_build)
+        add_dependencies(Skia::skia skia_build)
+    endif()
 
     if(WIN32)
         set_target_properties(Skia::skia PROPERTIES
-            IMPORTED_LOCATION "${SKIA_OUT_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}skia${CMAKE_STATIC_LIBRARY_SUFFIX}"
+            IMPORTED_LOCATION "${SKIA_OUT_DIR}/skia.lib"
         )
     else()
         set_target_properties(Skia::skia PROPERTIES
@@ -154,8 +169,8 @@ if(NOT TARGET Skia::skia)
         "${skia_SOURCE_DIR}/include"
         "${skia_SOURCE_DIR}/include/core"
         "${skia_SOURCE_DIR}/include/gpu"
-        "${skia_SOURCE_DIR}/include/gpu/ganesh"
-        "${skia_SOURCE_DIR}/include/gpu/ganesh/dawn"
+        "${skia_SOURCE_DIR}/include/gpu/graphite"
+        "${skia_SOURCE_DIR}/include/gpu/graphite/dawn"
         "${skia_SOURCE_DIR}/include/config"
         "${SKIA_OUT_DIR}/gen"       # Generated headers
     )

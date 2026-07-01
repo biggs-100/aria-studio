@@ -39,11 +39,13 @@ struct Color {
     float b = 0.0f;
     float a = 1.0f;
 
-    inline static const Color Black       = {0.0f, 0.0f, 0.0f, 1.0f};
-    inline static const Color White       = {1.0f, 1.0f, 1.0f, 1.0f};
-    inline static const Color Transparent = {0.0f, 0.0f, 0.0f, 0.0f};
-    inline static const Color Red         = {1.0f, 0.0f, 0.0f, 1.0f};
-    inline static const Color Blue        = {0.0f, 0.0f, 1.0f, 1.0f};
+    // Static color constants — defined outside the struct (see below)
+    // to avoid MSVC C2027 "use of incomplete type" with inline static + brace-init.
+    static const Color Black;
+    static const Color White;
+    static const Color Transparent;
+    static const Color Red;
+    static const Color Blue;
 
     static Color from_rgba8(uint8_t rr, uint8_t gg, uint8_t bb, uint8_t aa = 255) {
         return {
@@ -54,6 +56,13 @@ struct Color {
         };
     }
 };
+
+// Static Color definitions (outside struct, type is complete here)
+constexpr Color Color::Black       = {0.0f, 0.0f, 0.0f, 1.0f};
+constexpr Color Color::White       = {1.0f, 1.0f, 1.0f, 1.0f};
+constexpr Color Color::Transparent = {0.0f, 0.0f, 0.0f, 0.0f};
+constexpr Color Color::Red         = {1.0f, 0.0f, 0.0f, 1.0f};
+constexpr Color Color::Blue        = {0.0f, 0.0f, 1.0f, 1.0f};
 
 // ── Paint ────────────────────────────────────────────────────────
 

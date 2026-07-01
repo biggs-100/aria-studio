@@ -22,7 +22,10 @@
 # If vendor/dawn/ exists, use it directly (no network fetch).
 if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/dawn/CMakeLists.txt")
     message(STATUS "Dawn: using vendored source at vendor/dawn/")
-    set(DAWN_TAG "vendored" CACHE INTERNAL "")
+
+    # Force DAWN_INCLUDE_DIR before add_subdirectory to work around
+    # CMake subdirectory variable scoping issues with Dawn's own project().
+    set(DAWN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/vendor/dawn/include" CACHE INTERNAL "Dawn include directory")
     add_subdirectory("${CMAKE_SOURCE_DIR}/vendor/dawn" "build_vendor_dawn" EXCLUDE_FROM_ALL)
 else()
     include(FetchContent)
