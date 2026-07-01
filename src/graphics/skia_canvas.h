@@ -10,7 +10,7 @@
 // ── Skia forward declarations ────────────────────────────────────
 class SkSurface;
 class SkCanvas;
-class GrDirectContext;
+namespace skgpu::graphite { class Context; class Recorder; }
 
 struct WGPUSwapChainImpl;  // Opaque handle from GraphicsEngine
 
@@ -28,14 +28,14 @@ struct Font {
 
 // ── SkiaCanvas ───────────────────────────────────────────────────
 
-/// GPU-accelerated 2D canvas backed by Skia Ganesh + Dawn WebGPU.
+/// GPU-accelerated 2D canvas backed by Skia Graphite + Dawn WebGPU.
 ///
-/// Wraps a `GrDawnBackendContext` and `SkSurface` so that all drawing
-/// commands go through Skia's GPU pipeline. The surface is backed by
-/// a Dawn `WGPUTexture` from the swap chain.
+/// Wraps a `skgpu::graphite::DawnBackendContext` and `SkSurface` so
+/// that all drawing commands go through Skia's GPU pipeline. The
+/// surface is backed by a Dawn `WGPUTexture` from the swap chain.
 ///
 /// Design decisions (from design.md):
-///   - Uses Skia Ganesh (GPU) backend, not software raster.
+///   - Uses Skia Graphite (GPU) backend, not software raster.
 ///   - Surface is recreated on swap chain resize.
 ///   - All operations are safe to call on an uninitialised canvas
 ///     (they become no-ops).

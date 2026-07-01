@@ -24,6 +24,7 @@ struct GraphicsEngine::Impl {
     // Dawn types
     wgpu::Instance instance;
     wgpu::Device device;
+    wgpu::Queue   queue;
     wgpu::Adapter adapter;
 
     // Dawn native instance (for adapter enumeration)
@@ -157,6 +158,12 @@ struct GraphicsEngine::Impl {
         info.type = classify_adapter(props.adapterType);
         info.name = props.name ? props.name : "";
 
+        // 8. Obtain the default queue for the device (required by Skia Graphite)
+        queue = device.GetQueue();
+        if (!queue) {
+            return false;
+        }
+
         initialized = true;
         return true;
     }
@@ -165,6 +172,7 @@ struct GraphicsEngine::Impl {
         initialized = false;
         swap_chains.clear();
         device = nullptr;
+        queue = nullptr;
         adapter = nullptr;
         native_instance.reset();
         info = {};
@@ -207,6 +215,18 @@ bool GraphicsEngine::is_initialized() const noexcept {
 
 AdapterInfo GraphicsEngine::adapter_info() const {
     return impl_->info;
+}
+
+wgpu::Device GraphicsEngine::device() const noexcept {
+    return impl_ ? impl_->device : nullptr;
+}
+
+wgpu::Queue GraphicsEngine::queue() const noexcept {
+    return impl_ ? impl_->queue : nullptr;
+}
+
+wgpu::Instance GraphicsEngine::instance() const noexcept {
+    return impl_ ? impl_->instance : nullptr;
 }
 
 // ── Swap chain ───────────────────────────────────────────────────

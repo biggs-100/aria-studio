@@ -5,6 +5,8 @@
 #include <memory>
 #include <string>
 
+#include <dawn/webgpu_cpp.h>  // wgpu::Device, wgpu::Queue, wgpu::Instance
+
 struct WGPUSwapChainImpl;  // Opaque Dawn swap chain handle
 
 namespace aria {
@@ -81,6 +83,17 @@ public:
 
     /// Adapter information (valid only after init()).
     AdapterInfo adapter_info() const;
+
+    // ── Dawn object accessors (for Skia Graphite backend) ─────────
+
+    /// The Dawn device handle (null before init, null after shutdown).
+    wgpu::Device device() const noexcept;
+
+    /// The Dawn queue obtained from device.GetQueue() (null before init).
+    wgpu::Queue queue() const noexcept;
+
+    /// The Dawn instance handle (null before init, null after shutdown).
+    wgpu::Instance instance() const noexcept;
 
     // ── Swap chain ───────────────────────────────────────────────
 

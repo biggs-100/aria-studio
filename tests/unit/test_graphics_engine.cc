@@ -129,6 +129,54 @@ TEST_CASE("Double shutdown is safe (idempotent)",
 // TRIANGULATE – Swap Chain Lifecycle
 // =====================================================================
 
+// =====================================================================
+// RED / GREEN – Device/Queue/Instance accessors (Graphite migration)
+// =====================================================================
+
+TEST_CASE("GraphicsEngine device/queue/instance accessors return null before init",
+          "[graphics][engine][accessors]")
+{
+    // GIVEN a fresh, non-initialized engine
+    GraphicsEngine engine(BackendPreference::Default);
+
+    // THEN device, queue, and instance are all null
+    CHECK(engine.device() == nullptr);
+    CHECK(engine.queue() == nullptr);
+    CHECK(engine.instance() == nullptr);
+}
+
+// =====================================================================
+// TRIANGULATE – Accessors after init, after shutdown
+// =====================================================================
+
+TEST_CASE("GraphicsEngine device/queue/instance accessors return valid handles after init",
+          "[graphics][engine][accessors]")
+{
+    GraphicsEngine engine(BackendPreference::Default);
+    if (engine.init()) {
+        // GIVEN an initialised engine
+        // THEN device, queue, and instance are all valid (non-null)
+        CHECK(engine.device() != nullptr);
+        CHECK(engine.queue() != nullptr);
+        CHECK(engine.instance() != nullptr);
+        engine.shutdown();
+    }
+}
+
+TEST_CASE("GraphicsEngine device/queue/instance accessors return null after shutdown",
+          "[graphics][engine][accessors]")
+{
+    GraphicsEngine engine(BackendPreference::Default);
+    if (engine.init()) {
+        engine.shutdown();
+        // WHEN the engine has been shut down
+        // THEN device, queue, and instance all return null
+        CHECK(engine.device() == nullptr);
+        CHECK(engine.queue() == nullptr);
+        CHECK(engine.instance() == nullptr);
+    }
+}
+
 TEST_CASE("GraphicsEngine creates and destroys a swap chain",
           "[graphics][swapchain][lifecycle]")
 {

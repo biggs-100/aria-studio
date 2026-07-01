@@ -14,9 +14,13 @@
 #include <SkFont.h>
 #include <SkTypeface.h>
 #include <SkColor.h>
-#include <gpu/GrDirectContext.h>
-#include <gpu/ganesh/SkSurfaceGanesh.h>
-#include <gpu/ganesh/dawn/GrDawnBackendContext.h>
+#include <gpu/graphite/Context.h>
+#include <gpu/graphite/Recorder.h>
+#include <gpu/graphite/Recording.h>
+#include <gpu/graphite/Surface.h>
+#include <gpu/graphite/GraphiteTypes.h>
+#include <gpu/graphite/dawn/DawnBackendContext.h>
+#include <gpu/graphite/dawn/DawnUtils.h>
 
 // ── Dawn headers ─────────────────────────────────────────────────
 #include <dawn/webgpu_cpp.h>
@@ -28,10 +32,11 @@ namespace aria {
 // =====================================================================
 
 struct SkiaCanvas::Impl {
-    // Skia GPU context and surface
-    sk_sp<GrDirectContext> gr_context;
-    sk_sp<SkSurface>       surface;
-    SkCanvas*              canvas_ptr = nullptr;  // owned by surface
+    // Skia Graphite context, recorder, and surface
+    std::unique_ptr<skgpu::graphite::Context>  context;
+    std::unique_ptr<skgpu::graphite::Recorder> recorder;
+    sk_sp<SkSurface>                           surface;
+    SkCanvas*                                  canvas_ptr = nullptr;  // owned by surface
 
     // Dawn interaction
     GraphicsEngine*   engine    = nullptr;
@@ -52,7 +57,8 @@ struct SkiaCanvas::Impl {
     void reset() {
         surface    = nullptr;
         canvas_ptr = nullptr;
-        gr_context = nullptr;
+        context    = nullptr;
+        recorder   = nullptr;
         engine     = nullptr;
         swapchain  = nullptr;
         draw_calls = 0;
@@ -86,22 +92,29 @@ bool SkiaCanvas::init(GraphicsEngine* engine, WGPUSwapChainImpl* swapchain) {
         return false;
     }
 
-    // Create the GrDawnBackendContext
-    // This requires accessing the Dawn device from the engine.
-    // For now, we create a minimal GPU context.
-    // Full Dawn integration happens when the GPU device is accessible.
+    // Create the Skia Graphite DawnBackendContext from the engine.
+    // Graphite requires fInstance, fDevice, fQueue, and fTick.
+    skgpu::graphite::DawnBackendContext dawn_context{};
+    dawn_context.fInstance = engine->instance();
+    dawn_context.fDevice   = engine->device();
+    dawn_context.fQueue    = engine->queue();
+    // Use the default Dawn tick function (processes device events).
+    dawn_context.fTick     = nullptr;  // Falls back to default behavior
 
-    // Create an SkSurface backed by the swap chain texture.
-    // In PR 2 this creates a basic surface; full Dawn texture sharing
-    // is wired when the device handle is available.
-    GrDawnBackendContext dawn_context{};
-
-    // For the initial implementation, we try to create a GPU context.
-    // If Dawn device access isn't available yet, we fall back gracefully.
-    impl_->gr_context = GrDirectContext::MakeDawn(dawn_context);
-    if (!impl_->gr_context) {
-        // GPU context creation failed — safe no-op fallback
+    // Create the Graphite context via the Dawn-based factory.
+    impl_->context = skgpu::graphite::ContextFactory::MakeDawn(
+        dawn_context, {}
+    );
+    if (!impl_->context) {
+        // Graphite context creation failed — safe no-op fallback
         impl_->ready = false;
+        return false;
+    }
+
+    // Create a Recorder for capturing GPU commands.
+    impl_->recorder = impl_->context->makeRecorder();
+    if (!impl_->recorder) {
+        impl_->context = nullptr;
         return false;
     }
 
@@ -113,15 +126,17 @@ bool SkiaCanvas::init(GraphicsEngine* engine, WGPUSwapChainImpl* swapchain) {
         kPremul_SkAlphaType
     );
 
-    // Use SkSurfaces::RenderTarget for GPU-backed surface
+    // Use SkSurfaces::RenderTarget for GPU-backed surface.
+    // Graphite uses Recorder* and Mipmapped instead of Ganesh's GrDirectContext* and Budgeted.
     impl_->surface = SkSurfaces::RenderTarget(
-        impl_->gr_context.get(),
-        skgpu::Budgeted::kYes,
-        image_info
+        impl_->recorder.get(),
+        image_info,
+        skgpu::Mipmapped::kNo
     );
 
     if (!impl_->surface) {
-        impl_->gr_context = nullptr;
+        impl_->recorder = nullptr;
+        impl_->context  = nullptr;
         return false;
     }
 
@@ -233,9 +248,16 @@ void SkiaCanvas::drawTextBlob(const char* text, const Font& font,
 }
 
 void SkiaCanvas::flush() {
-    if (impl_->gr_context && impl_->ready) {
-        impl_->gr_context->flush();
-        impl_->gr_context->submit();
+    if (impl_->context && impl_->recorder && impl_->ready) {
+        // Graphite 3-step flush: snap → insertRecording → submit
+        auto recording = impl_->recorder->snap();
+        if (recording) {
+            skgpu::graphite::InsertRecordingInfo info{recording.get()};
+            impl_->context->insertRecording(info);
+            impl_->context->submit(skgpu::graphite::SyncToCpu::kNo);
+        }
+        // Create a new Recorder for the next frame.
+        impl_->recorder = impl_->context->makeRecorder();
     }
     impl_->draw_calls = 0;
 }
@@ -262,11 +284,17 @@ void SkiaCanvas::clipRect(const Rect& r) {
 }
 
 bool SkiaCanvas::recreate_surface(uint32_t width, uint32_t height) {
-    if (!impl_->gr_context) {
+    if (!impl_->context) {
         return false;
     }
 
     if (width == 0 || height == 0) {
+        return false;
+    }
+
+    // Create a new Recorder for the recreated surface.
+    impl_->recorder = impl_->context->makeRecorder();
+    if (!impl_->recorder) {
         return false;
     }
 
@@ -278,12 +306,13 @@ bool SkiaCanvas::recreate_surface(uint32_t width, uint32_t height) {
     );
 
     impl_->surface = SkSurfaces::RenderTarget(
-        impl_->gr_context.get(),
-        skgpu::Budgeted::kYes,
-        image_info
+        impl_->recorder.get(),
+        image_info,
+        skgpu::Mipmapped::kNo
     );
 
     if (!impl_->surface) {
+        impl_->recorder = nullptr;
         return false;
     }
 
